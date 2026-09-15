@@ -8,14 +8,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>DAVOMAT — Юз терминали</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=0.6.1">
+  <link rel="stylesheet" href="styles.css?v=0.7.1">
 </head>
 <body>
   <main class="terminal-shell">
     <header class="terminal-head">
       <div class="brand">
         <div class="brand-dot">D</div>
-        <div><strong>DAVOMAT</strong><span>Юз терминали · v0.6.1</span></div>
+        <div><strong>DAVOMAT</strong><span>Юз терминали · v0.7.1</span></div>
       </div>
       <div class="head-right">
         <span id="netBadge" class="badge offline">ОФЛАЙН</span>
@@ -41,9 +41,9 @@
         <div>
           <span class="eyebrow">АДМИН ВАЗИФАСИ</span>
           <strong id="enrollBannerName">Ходим</strong>
-          <small>Юзини рўйхатга олиш тайёр</small>
+          <small>Камера автоматик очилади</small>
         </div>
-        <button id="startEnrollBtn" class="enroll-start-btn">РЎЙХАТГА ОЛИШ</button>
+        <button id="startEnrollBtn" class="enroll-start-btn">РЎЙХАТГА ОЛИШНИ БОШЛАШ</button>
       </div>
 
       <div class="idle-title">
@@ -86,7 +86,7 @@
             <div id="scanTicks" class="scan-ticks" aria-hidden="true"></div>
             <div class="face-oval"></div>
           </div>
-          <div id="enrollCounter" class="enroll-counter hidden">0 / 7</div>
+          <div id="enrollCounter" class="enroll-counter hidden">0 / 6</div>
         </div>
 
         <div id="cameraStatus" class="camera-status">КАМЕРА ЁҚИЛМОҚДА…</div>
@@ -114,6 +114,7 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js"></script>
-  <script src="app.js?v=0.6.1"></script>
+  <script src="app.js?v=0.7.1"></script>
+  <script src="auto-enroll.js?v=0.7.1"></script>
 </body>
 </html>
