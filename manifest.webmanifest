@@ -1,0 +1,14 @@
+{
+  "name": "DAVOMAT",
+  "short_name": "DAVOMAT",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#050b14",
+  "theme_color": "#07101e",
+  "lang": "uz-Cyrl",
+  "icons": [
+    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
