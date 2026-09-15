@@ -8,14 +8,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>DAVOMAT — Юз терминали</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=0.7.1">
+  <link rel="stylesheet" href="styles.css?v=0.8.0">
 </head>
 <body>
   <main class="terminal-shell">
     <header class="terminal-head">
       <div class="brand">
         <div class="brand-dot">D</div>
-        <div><strong>DAVOMAT</strong><span>Юз терминали · v0.7.1</span></div>
+        <div><strong>DAVOMAT</strong><span>Юз терминали · v0.8.0</span></div>
       </div>
       <div class="head-right">
         <span id="netBadge" class="badge offline">ОФЛАЙН</span>
@@ -24,13 +24,12 @@
     </header>
 
     <section id="setupView" class="setup-card hidden">
-      <h1>Биринчи созлаш</h1>
-      <p>Бу маълумотлар фақат бир марта киритилади. Кейин шу телефон ёки планшет тўғридан-тўғри DAVOMAT сифатида ишлайди.</p>
-      <label>Apps Script манзили<input id="setupUrl" placeholder="https://script.google.com/macros/s/.../exec"></label>
-      <label>Қурилма ID<input id="setupDeviceId" value="terminal-01"></label>
-      <label>Қурилма токени<input id="setupToken" type="password"></label>
-      <button id="saveSetupBtn" class="primary-btn">Сақлаш ва терминалга ўтиш</button>
-      <div id="setupError" class="error"></div>
+      <h1>DAVOMAT терминали</h1>
+      <p>Бу қурилма ҳали уланмаган ёки сервер билан алоқа узилган.</p>
+      <div id="setupError" class="error" style="margin:16px 0"></div>
+      <div id="setupDetail" class="hint"></div>
+      <button id="retrySetupBtn" class="primary-btn">Қайта уриниш</button>
+      <p class="hint" style="margin-top:14px">Техник манзил, ID ва токенни қўлда киритиш керак эмас.</p>
     </section>
 
     <section id="idleView" class="idle-view hidden">
@@ -43,7 +42,7 @@
           <strong id="enrollBannerName">Ходим</strong>
           <small>Камера автоматик очилади</small>
         </div>
-        <button id="startEnrollBtn" class="enroll-start-btn">РЎЙХАТГА ОЛИШНИ БОШЛАШ</button>
+        <button id="startEnrollBtn" class="enroll-start-btn">РЎЙХАТГА ОЛИШ</button>
       </div>
 
       <div class="idle-title">
@@ -114,7 +113,6 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js"></script>
-  <script src="app.js?v=0.7.1"></script>
-  <script src="auto-enroll.js?v=0.7.1"></script>
+  <script src="app.js?v=0.8.0"></script>
 </body>
 </html>
