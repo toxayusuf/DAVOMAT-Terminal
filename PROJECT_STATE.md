@@ -1,41 +1,37 @@
 # DAVOMAT — PROJECT STATE
 
-Версия: v0.9.0
+Версия: v0.9.1
 Дата: 2026-09-16
 
-## Зафиксированная архитектура
-- Google Apps Script — backend и админка.
-- Google Sheets — сотрудники, графики, посещения, зарплата, audit.
-- Google Drive — контрольные фотографии.
-- GitHub Pages — только Face Terminal/PWA.
+## Архитектура
+- Google Apps Script: backend + admin UI + Bridge.
+- Google Sheets: сотрудники, графики, посещаемость, зарплата.
+- Google Drive: контрольные фото.
+- GitHub Pages: Face Terminal/PWA.
 
-## UX
-- Никакого ручного ввода Apps Script URL, device ID, device token или 6-значного кода сотрудником.
-- Регистрация: админ нажимает `Юзни рўйхатга олиш` → открывается терминал → камера автоматически запускается → 6 качественных образцов → `ЮЗ ТАЙЁР`.
-- Посещение: сотрудник нажимает только `КЕЛДИ` или `КЕТДИ` → камера → распознавание → запись события → камера выключается.
-- Камера не работает постоянно.
+## Ошибка, подтверждённая видео 16.09
+Админка создавала OPEN enrollment-сессию, но терминал открывал обычный экран КЕЛДИ/КЕТДИ. Затем появлялось `DAVOMAT сервер мости жавоб бермади`.
 
-## Причина сбоев v0.8.x
-GitHub Terminal общался с Apps Script напрямую через JSONP/no-cors. В реальном браузере этот cross-origin путь оказался нестабилен из-за редиректов Apps Script и sandbox/security поведения. Поэтому терминал мог показывать `серверга уланмади`, хотя Web App был опубликован правильно (`Execute as me` + `Anyone`).
+Корневая причина: Apps Script HtmlService реально вложен как Google wrapper → googleusercontent iframe. Старый bridge отправлял READY непосредственному `parent`, а терминал ожидал сообщение от внешнего iframe. Handshake поэтому завершался timeout.
 
-## Исправление v0.9.0
-- Полностью убран JSONP/no-cors как основной канал связи терминала с Apps Script.
-- Добавлен Apps Script Bridge: скрытый iframe `?bridge=1`, разрешённый через `HtmlService.XFrameOptionsMode.ALLOWALL`.
-- GitHub Terminal общается с Bridge через `postMessage`.
-- Bridge выполняет серверные методы через официальный `google.script.run` и возвращает ответы обратно терминалу.
-- Device ID/token по-прежнему проверяются на сервере; Bridge не отменяет авторизацию.
-- Attendance и enrollment теперь получают серверный ответ напрямую через Bridge; polling `requestStatus` больше не нужен в обычном онлайн-сценарии.
-- Offline queue сохранена: при отсутствии сети события остаются локально и отправляются после восстановления Bridge.
-- Service Worker cache поднят до v0.9.0.
+## Исправление v0.9.1
+- Bridge page отправляет READY в `top`.
+- GitHub Terminal сохраняет `event.source` реального inner frame как `bridgeTarget` и шлёт запросы напрямую ему.
+- Enrollment launch получает `purpose=enroll`.
+- В enrollment mode терминал не показывает КЕЛДИ/КЕТДИ: ждёт задачу регистрации до 15 секунд и затем сам запускает ENROLL.
+- До готовности backend показывается отдельный loading screen.
+- Admin загружает bootstrap + employees + schedules + settings одним `getAdminAppData()` вместо четырёх последовательных `google.script.run` вызовов.
+- PWA cache поднят до v0.9.1.
+
+## Проверки перед выдачей
+- Syntax: Code.gs / Admin JS / Terminal app.js — OK.
+- Playwright admin-flow: enrollment href содержит `purpose=enroll`; click запускает `createEnrollmentSession` — OK.
+- Playwright enrollment-route: attendance UI не показывается, mode становится ENROLL — OK.
+- Playwright nested bridge: top → wrapper → inner handshake и round-trip через сохранённый `event.source` — OK (`OK:pong`).
+- GitHub Pages deployment v0.9.1 — SUCCESS.
 
 ## Обязательное обновление Apps Script
-v0.9.0 требует синхронной замены `Code.gs` и `Admin.html`, потому что Bridge добавлен в backend. Одного Admin.html недостаточно.
+Нужно синхронно заменить `Code.gs` и `Admin.html` на v0.9.1 и обновить существующий Web App deployment. `setupDavomat()` не запускать.
 
-После замены:
-1. Сохранить проект Apps Script.
-2. Обновить существующее Web App deployment новой версией.
-3. `setupDavomat()` НЕ запускать.
-4. В админке проверить `v0.9.0 UI`.
-5. `Ходимлар` → `Юзни рўйхатга олиш`.
-6. Терминал должен показать `v0.9.0`, подключиться через Bridge и запустить камеру.
-7. После `ЮЗ ТАЙЁР`: проверить `КЕЛДИ` → `КЕТДИ` → ATTENDANCE_EVENTS/ATTENDANCE → рабочее время.
+## Следующий контрольный тест
+Регистрация лица → `ЮЗ ТАЙЁР` → КЕЛДИ → КЕТДИ → проверка ATTENDANCE_EVENTS / ATTENDANCE / WORKED_MIN.
