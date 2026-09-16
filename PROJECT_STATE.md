@@ -1,46 +1,50 @@
 # DAVOMAT — PROJECT STATE
 
-Версия: v1.0.0
+Версия: v1.1.0
 Дата: 2026-09-16
 
-## Архитектура
-- Google Apps Script: backend + admin UI + Terminal Host.
-- Google Sheets: сотрудники, графики, посещаемость, зарплата.
+## Зафиксированная архитектура
+- Google Apps Script: backend + admin UI + device/enrollment launch links.
+- Google Sheets: сотрудники, графики, посещаемость, зарплата, audit.
 - Google Drive: контрольные фото.
 - GitHub Pages: Face Terminal/PWA.
 
-## Ошибка, подтверждённая реальными видео v0.9.x
-Регистрация открывалась, но зависала на `Рўйхатга олиш тайёрланмоқда…`, после чего появлялось `DAVOMAT сервер мости жавоб бермади`. Причиной был скрытый Apps Script iframe bridge: реальная цепочка Google wrapper / googleusercontent iframe в Chrome не давала стабильного round-trip между GitHub Terminal и `google.script.run`.
+## Почему v1.0.x не подходит
+На desktop opener-RPC частично работал, но на iPhone/Safari новая вкладка GitHub могла потерять `window.opener`. Тогда терминал показывал `DAVOMAT терминали админка ёки планшет саҳифаси орқали очилиши керак`. Поэтому зависимость от opener полностью удалена.
 
-## Решение v1.0.0
-Скрытый iframe Bridge удалён из рабочего пути целиком.
+## Архитектура v1.1.0
+- Терминал работает напрямую с опубликованным Apps Script Web App.
+- Конфигурация устройства передаётся один раз в URL fragment `#cfg=...` и сохраняется в localStorage браузера. Fragment не отправляется на GitHub сервер.
+- GET/reads: JSONP к Apps Script (`bootstrap`, `enrollment`, `pendingEnrollment`, `requestStatus`).
+- Writes: `fetch(..., mode=no-cors, Content-Type=text/plain)` → Apps Script `doPost` → polling `requestStatus` через JSONP.
+- Ни iframe bridge, ни `window.opener`, ни ручной ввод URL/device/token не используются.
+- На телефоне/планшете после первого правильного запуска GitHub Terminal может открываться как обычный PWA с сохранённой конфигурацией.
 
-### Регистрация
-Admin.html (Apps Script) остаётся открытым как `window.opener` → пользователь нажимает `Юзни рўйхатга олиш` → GitHub Terminal открывается обычной ссылкой `target=_blank rel=opener` → Terminal отправляет RPC через `window.opener.postMessage` → Admin выполняет серверный метод через штатный `google.script.run` → ответ возвращается Terminal через `postMessage`.
+## Регистрация
+Админ нажимает `Юзни рўйхатга олиш` → Apps Script создаёт enrollment session → редиректит на GitHub Terminal с `purpose=enroll&enroll=CODE#cfg=...` → Terminal сразу запускает камеру → 6 образцов → `ЮЗ ТАЙЁР`. Экран КЕЛДИ/КЕТДИ в этом режиме не показывается.
 
-Регистрационная сессия создаётся только после открытия Terminal. Поэтому Terminal не показывает `КЕЛДИ/КЕТДИ`: он сразу получает сотрудника → открывает камеру → 6 образцов → `ЮЗ ТАЙЁР`.
+## Посещение
+Планшет получает один device link из `Созламалар → Телефон/планшетни улаш`. После первого открытия терминал сохраняет конфигурацию. Сотрудник использует только `КЕЛДИ` / `КЕТДИ` → камера → лицо/liveness → запись → камера выключается.
 
-### Рабочий планшет
-Apps Script предоставляет простую Terminal Host страницу (`?terminal=1&k=...`). На ней нет технических полей. Она открывает GitHub Terminal и остаётся его opener. Далее `КЕЛДИ/КЕТДИ` идут тем же RPC-механизмом через `google.script.run`.
+## Backend fixes v1.1.0
+- Исправлен парсинг времени Google Sheets: schedule time cells могут приходить как Date, а не строка. Раньше это приводило к `Cannot read properties of null (reading 'getTime')` после уже записанного события.
+- В `processAttendanceEvent_` добавлен ScriptLock, чтобы два параллельных распознавания не могли одновременно создать два ACCEPTED IN.
+- Для онлайн-событий серверное время является authoritative; clientTime используется только для offline queue.
+- Schema version поднята, чтобы миграция снова прошла и исправила legacy duplicate same-type events.
 
-## UX-правила
-- Никакого ручного ввода URL, device ID, токена или 6-значного кода сотрудником.
-- Камера включается только после регистрации / КЕЛДИ / КЕТДИ и затем выключается.
-- Регистрация: `Юзни рўйхатга олиш` → камера → кольцо 0–100% → 6 образцов → `ЮЗ ТАЙЁР`.
-- Посещение: `КЕЛДИ` или `КЕТДИ` → камера → распознавание → запись → камера выключается.
+## Реальные данные, выявленные 16.09
+Видео показало `Нотўғри тугма танланди`. Проверка базы показала, что ранее два IN одновременно были записаны ACCEPTED, а оба запроса затем упали при расчёте дня с `Cannot read properties of null (reading 'getTime')`. Следующие попытки закономерно получали ALREADY_MARKED / EVENT_TYPE_MISMATCH. Это backend race + schedule-time parsing, а не ошибка распознавания лица.
 
-## Проверки перед выдачей
-- `Code.gs` syntax — OK.
-- `Admin.html` extracted JavaScript syntax — OK.
-- Terminal `app.js` syntax — OK.
-- GitHub Terminal `index.html`, `app.js`, `sw.js` синхронизированы на v1.0.0.
-- Локальный браузерный E2E в текущей среде не был доступен из-за managed Chromium policy, поэтому не заявлять, что реальный webcam/browser test пройден до проверки на пользовательском Chrome.
+## UX правила
+- Никакого ручного ввода Apps Script URL, device ID, token или 6-значного кода сотрудником.
+- Камера не работает постоянно.
+- Регистрация: нажал в админке → камера → 0/6 → 6/6 → готово.
+- Сотрудник: `КЕЛДИ` / `КЕТДИ` → лицо → результат.
 
-## Обязательное обновление Apps Script
-Нужно синхронно заменить `Code.gs` и `Admin.html` из пакета v1.0.0 и обновить существующий Web App deployment. `setupDavomat()` не запускать. GitHub вручную не менять.
-
-## Следующий контрольный тест
-1. В админке должно быть `v1.0.0 UI`.
-2. Ходимлар → `Юзни рўйхатга олиш`.
-3. Терминал должен показать `v1.0.0` и сразу перейти к камере, без экрана КЕЛДИ/КЕТДИ и без bridge timeout.
-4. После `ЮЗ ТАЙЁР`: проверить КЕЛДИ → КЕТДИ → ATTENDANCE_EVENTS / ATTENDANCE / WORKED_MIN.
+## Следующий тест
+1. Синхронно заменить Apps Script `Code.gs` и `Admin.html` v1.1.0.
+2. Обновить существующий Web App deployment новой версией. `setupDavomat()` не запускать.
+3. Админка должна показывать `v1.1.0 UI`.
+4. `Созламалар → Телефон/планшетни улаш` → открыть device link на iPhone/планшете.
+5. Должен открыться GitHub Terminal v1.1.0 без opener error и без технических полей.
+6. После миграции проверить чистую цепочку КЕЛДИ → КЕТДИ → ATTENDANCE_EVENTS / ATTENDANCE / WORKED_MIN.
