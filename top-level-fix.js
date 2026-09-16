@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 
-const VERSION = '1.2.1';
+const VERSION = '1.3.0';
 const CFG_KEY = 'davomat-terminal-config-v2';
 const MODES = { inBtn:'IN', outBtn:'OUT', startEnrollBtn:'ENROLL' };
 
@@ -9,11 +9,11 @@ function embedded(){
   try { return window.self !== window.top; } catch { return true; }
 }
 
+window.__DAVOMAT_EMBEDDED__ = embedded();
+
 function updateVersion(){
   document.querySelectorAll('.brand span').forEach(el => {
-    if ((el.textContent || '').includes('Юз терминали')) {
-      el.textContent = 'Юз терминали · v' + VERSION;
-    }
+    if ((el.textContent || '').includes('Юз терминали')) el.textContent = 'Юз терминали · v' + VERSION;
   });
 }
 
@@ -30,16 +30,11 @@ function buildDirectUrl(mode){
   const u = new URL(window.location.href);
   u.searchParams.set('handoff', mode);
   u.searchParams.set('terminal_build', VERSION);
-
-  // Third-party iframe storage can be partitioned (especially on iPhone/Safari).
-  // Therefore carry the already-provisioned device config explicitly into the
-  // new top-level GitHub page instead of relying on shared localStorage.
   try {
     const raw = localStorage.getItem(CFG_KEY);
     const encoded = raw ? encodeCfg(raw) : '';
     if (encoded) u.hash = 'cfg=' + encoded;
   } catch {}
-
   return u.toString();
 }
 
@@ -53,10 +48,9 @@ function openTopLevel(mode){
   document.body.appendChild(a);
   a.click();
   a.remove();
-
   const toast = document.querySelector('#toast');
   if (toast) {
-    toast.textContent = 'Камера хавфсиз ойнада очилмоқда…';
+    toast.textContent = 'Камера очилмоқда…';
     toast.classList.remove('hidden');
   }
 }
@@ -88,7 +82,6 @@ function autoStartTopLevel(){
   const mode = (p.get('handoff') || '').toUpperCase();
   if (!['IN','OUT','ENROLL'].includes(mode)) return;
   cleanHandoffParam();
-
   const id = mode === 'IN' ? 'inBtn' : mode === 'OUT' ? 'outBtn' : 'startEnrollBtn';
   let attempts = 0;
   const timer = setInterval(() => {
@@ -100,21 +93,16 @@ function autoStartTopLevel(){
       btn.click();
       return;
     }
-    if (attempts > 150) clearInterval(timer);
-  }, 200);
+    if (attempts > 120) clearInterval(timer);
+  }, 100);
 }
 
 document.addEventListener('click', interceptEmbeddedActions, true);
-
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    updateVersion();
-    autoStartTopLevel();
-  });
+  document.addEventListener('DOMContentLoaded', () => { updateVersion(); autoStartTopLevel(); });
 } else {
   updateVersion();
   autoStartTopLevel();
 }
-
 window.addEventListener('pageshow', updateVersion);
 })();
