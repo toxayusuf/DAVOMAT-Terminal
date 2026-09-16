@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 
-const VERSION = '1.3.1';
+const VERSION = '1.3.2';
 const CFG_KEY = 'davomat-terminal-config-v2';
 const MODES = { inBtn:'IN', outBtn:'OUT', startEnrollBtn:'ENROLL' };
 
@@ -9,13 +9,28 @@ function embedded(){
   try { return window.self !== window.top; } catch { return true; }
 }
 
-window.__DAVOMAT_EMBEDDED__ = embedded();
+function params(){
+  const p = new URLSearchParams(location.search);
+  return {
+    handoff:(p.get('handoff')||'').toUpperCase(),
+    purpose:(p.get('purpose')||'attendance').toLowerCase(),
+    enroll:(p.get('enroll')||'')
+  };
+}
+
+function launcherMode(){
+  const p = params();
+  return !p.handoff && p.purpose !== 'enroll' && !p.enroll;
+}
+
+// app.js is loaded after this file. In launcher mode it must never start
+// bootstrap/Face AI/network waiting. Treat launcher as a lightweight shell.
+window.__DAVOMAT_EMBEDDED__ = embedded() || launcherMode();
+window.__DAVOMAT_LAUNCHER_MODE__ = launcherMode();
 
 function updateVersion(){
   document.querySelectorAll('.brand span').forEach(el => {
-    if ((el.textContent || '').includes('Юз терминали')) {
-      el.textContent = 'Юз терминали · v' + VERSION;
-    }
+    if ((el.textContent || '').includes('Юз терминали')) el.textContent = 'Юз терминали · v' + VERSION;
   });
 }
 
@@ -48,22 +63,21 @@ function buildDirectUrl(mode){
   return u.toString();
 }
 
-function openTopLevel(mode){
+function openDirect(mode){
   const url = buildDirectUrl(mode);
-  const a = document.createElement('a');
-  a.href = url;
-  a.target = '_blank';
-  a.rel = 'noopener';
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-
-  const toast = document.querySelector('#toast');
-  if (toast) {
-    toast.textContent = 'Камера очилмоқда…';
-    toast.classList.remove('hidden');
-    setTimeout(() => toast.classList.add('hidden'), 1800);
+  if (embedded()) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } else {
+    // Already top-level: reuse the same tab. This avoids another popup and
+    // guarantees the camera page has a real user gesture/navigation context.
+    location.assign(url);
   }
 }
 
@@ -77,11 +91,9 @@ function clockText(){
   } catch {}
 }
 
-function activateEmbeddedLauncher(){
-  if (!embedded()) return;
+function forceLauncher(){
+  if (!launcherMode()) return;
 
-  // The Apps Script page is only a launcher. It must NEVER wait for server,
-  // employee bootstrap or Face AI. Those belong to the top-level GitHub page.
   ['loadingView','setupView','cameraView','resultView'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
@@ -91,8 +103,8 @@ function activateEmbeddedLauncher(){
 
   const badge = document.getElementById('netBadge');
   if (badge) {
-    badge.textContent = 'ТАЙЁР';
-    badge.className = 'badge online';
+    badge.textContent = navigator.onLine ? 'ТАЙЁР' : 'ОФЛАЙН';
+    badge.className = 'badge ' + (navigator.onLine ? 'online' : 'offline');
   }
 
   const enroll = document.getElementById('enrollBanner');
@@ -100,21 +112,18 @@ function activateEmbeddedLauncher(){
 
   updateVersion();
   clockText();
-  if (!window.__DAVOMAT_LAUNCH_CLOCK__) {
-    window.__DAVOMAT_LAUNCH_CLOCK__ = setInterval(clockText, 1000);
-  }
 }
 
-function interceptEmbeddedActions(ev){
-  if (!embedded()) return;
+function interceptLauncherActions(ev){
+  if (!launcherMode()) return;
   const target = ev.target && ev.target.closest ? ev.target.closest('button') : null;
   if (!target) return;
   const mode = MODES[target.id];
-  if (!mode) return;
+  if (!mode || mode === 'ENROLL') return;
   ev.preventDefault();
   ev.stopPropagation();
   if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
-  openTopLevel(mode);
+  openDirect(mode);
 }
 
 function cleanHandoffParam(){
@@ -128,36 +137,48 @@ function cleanHandoffParam(){
 
 function autoStartTopLevel(){
   if (embedded()) return;
-  const p = new URLSearchParams(location.search);
-  const mode = (p.get('handoff') || '').toUpperCase();
+  const p = params();
+  const mode = p.handoff;
   if (!['IN','OUT','ENROLL'].includes(mode)) return;
-  cleanHandoffParam();
 
+  // Keep handoff available until app.js has actually started the requested
+  // session. Do not erase it before boot(), otherwise the app can fall back
+  // to the normal idle/bootstrap route and appear frozen.
   const id = mode === 'IN' ? 'inBtn' : mode === 'OUT' ? 'outBtn' : 'startEnrollBtn';
   let attempts = 0;
   const timer = setInterval(() => {
     attempts++;
+    updateVersion();
     const btn = document.getElementById(id);
     const idle = document.getElementById('idleView');
     if (btn && idle && !idle.classList.contains('hidden') && !btn.disabled) {
       clearInterval(timer);
       btn.click();
+      setTimeout(cleanHandoffParam, 600);
       return;
     }
-    if (attempts > 180) clearInterval(timer);
+    if (attempts > 300) clearInterval(timer);
   }, 100);
 }
 
-// Capture clicks even if the heavy terminal bundle is unavailable.
-document.addEventListener('click', interceptEmbeddedActions, true);
+document.addEventListener('click', interceptLauncherActions, true);
 
 function ready(){
   updateVersion();
-  activateEmbeddedLauncher();
+  forceLauncher();
   autoStartTopLevel();
+
+  if (!window.__DAVOMAT_LAUNCH_CLOCK__) {
+    window.__DAVOMAT_LAUNCH_CLOCK__ = setInterval(() => {
+      forceLauncher();
+      updateVersion();
+    }, 500);
+  }
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready);
 else ready();
 window.addEventListener('pageshow', ready);
+window.addEventListener('online', forceLauncher);
+window.addEventListener('offline', forceLauncher);
 })();
