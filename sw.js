@@ -1,4 +1,4 @@
-const SHELL_CACHE='davomat-shell-v1.3.1';
+const SHELL_CACHE='davomat-shell-v1.3.2';
 const MODEL_CACHE='davomat-model-runtime-v1';
 const SHELL=['./','./index.html','./styles.css','./app.js','./top-level-fix.js','./manifest.webmanifest','./icon.svg'];
 
