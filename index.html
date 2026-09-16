@@ -8,20 +8,27 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>DAVOMAT — Юз терминали</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=0.9.0">
+  <link rel="stylesheet" href="styles.css?v=0.9.1">
 </head>
 <body>
   <main class="terminal-shell">
     <header class="terminal-head">
       <div class="brand">
         <div class="brand-dot">D</div>
-        <div><strong>DAVOMAT</strong><span>Юз терминали · v0.9.0</span></div>
+        <div><strong>DAVOMAT</strong><span>Юз терминали · v0.9.1</span></div>
       </div>
       <div class="head-right">
         <span id="netBadge" class="badge offline">ОФЛАЙН</span>
         <button id="adminBtn" class="icon-btn" aria-label="Сервис">⚙</button>
       </div>
     </header>
+
+    <section id="loadingView" class="setup-card">
+      <div class="loading-orb" aria-hidden="true"></div>
+      <h1 id="loadingTitle">DAVOMAT тайёрланмоқда…</h1>
+      <p id="loadingDetail">Серверга уланмоқда</p>
+      <p class="hint" style="margin-top:14px">Биринчи очилишда юз модели браузерга юкланади. Кейинги очилишлар тезроқ бўлади.</p>
+    </section>
 
     <section id="setupView" class="setup-card hidden">
       <h1>DAVOMAT терминали</h1>
@@ -113,6 +120,6 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js"></script>
-  <script src="app.js?v=0.9.0"></script>
+  <script src="app.js?v=0.9.1"></script>
 </body>
 </html>
