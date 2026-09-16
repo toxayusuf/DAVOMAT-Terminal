@@ -1,7 +1,8 @@
 (() => {
 'use strict';
 
-const VERSION = '1.2.0';
+const VERSION = '1.2.1';
+const CFG_KEY = 'davomat-terminal-config-v2';
 const MODES = { inBtn:'IN', outBtn:'OUT', startEnrollBtn:'ENROLL' };
 
 function embedded(){
@@ -16,10 +17,29 @@ function updateVersion(){
   });
 }
 
+function encodeCfg(raw){
+  try {
+    const bytes = new TextEncoder().encode(raw);
+    let bin='';
+    bytes.forEach(b => { bin += String.fromCharCode(b); });
+    return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  } catch { return ''; }
+}
+
 function buildDirectUrl(mode){
   const u = new URL(window.location.href);
   u.searchParams.set('handoff', mode);
   u.searchParams.set('terminal_build', VERSION);
+
+  // Third-party iframe storage can be partitioned (especially on iPhone/Safari).
+  // Therefore carry the already-provisioned device config explicitly into the
+  // new top-level GitHub page instead of relying on shared localStorage.
+  try {
+    const raw = localStorage.getItem(CFG_KEY);
+    const encoded = raw ? encodeCfg(raw) : '';
+    if (encoded) u.hash = 'cfg=' + encoded;
+  } catch {}
+
   return u.toString();
 }
 
