@@ -8,27 +8,27 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>DAVOMAT — Юз терминали</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=1.1.0">
+  <link rel="stylesheet" href="styles.css?v=1.1.1">
 </head>
 <body>
   <main class="terminal-shell">
     <header class="terminal-head">
-      <div class="brand"><div class="brand-dot">D</div><div><strong>DAVOMAT</strong><span>Юз терминали · v1.1.0</span></div></div>
+      <div class="brand"><div class="brand-dot">D</div><div><strong>DAVOMAT</strong><span>Юз терминали · v1.1.1</span></div></div>
       <div class="head-right"><span id="netBadge" class="badge offline">ОФЛАЙН</span><button id="adminBtn" class="icon-btn" aria-label="Сервис">⚙</button></div>
     </header>
     <section id="loadingView" class="setup-card"><div class="loading-orb" aria-hidden="true"></div><h1 id="loadingTitle">DAVOMAT тайёрланмоқда…</h1><p id="loadingDetail">Серверга уланмоқда</p><p class="hint" style="margin-top:14px">Биринчи очилишда юз модели браузерга юкланади. Кейинги очилишлар тезроқ бўлади.</p></section>
     <section id="setupView" class="setup-card hidden"><h1>DAVOMAT терминали</h1><p>Қурилма ҳали DAVOMAT га уланмаган.</p><div id="setupError" class="error" style="margin:16px 0"></div><div id="setupDetail" class="hint"></div><button id="retrySetupBtn" class="primary-btn">Қайта уриниш</button><p class="hint" style="margin-top:14px">URL, ID, токен ёки кодни қўлда киритиш керак эмас.</p></section>
     <section id="idleView" class="idle-view hidden">
       <div class="idle-clock" id="idleClock">--:--</div><div class="idle-date" id="idleDate"></div>
-      <div id="enrollBanner" class="enroll-banner hidden"><div><span class="eyebrow">АДМИН ВАЗИФАСИ</span><strong id="enrollBannerName">Ходим</strong><small>Камера автоматик очилади</small></div><button id="startEnrollBtn" class="enroll-start-btn">РЎЙХАТГА ОЛИШ</button></div>
+      <div id="enrollBanner" class="enroll-banner hidden"><div><span class="eyebrow">АДМИН ВАЗИФАСИ</span><strong id="enrollBannerName">Ходим</strong><small>Рухсатдан кейин камера очилади</small></div><button id="startEnrollBtn" class="enroll-start-btn">РЎЙХАТГА ОЛИШ</button></div>
       <div class="idle-title"><span class="eyebrow">ДАВОМАТ БЕЛГИСИ</span><h1>Нима белгилайсиз?</h1><p>Тугмани босинг. Камера фақат текширув вақтида ёқилади.</p></div>
       <div class="action-grid"><button id="inBtn" class="action-card in-card"><span class="action-icon">↘</span><span class="action-title">КЕЛДИ</span><span class="action-sub">Ишга кириш</span></button><button id="outBtn" class="action-card out-card"><span class="action-icon">↗</span><span class="action-title">КЕТДИ</span><span class="action-sub">Ишдан чиқиш</span></button></div>
       <div class="privacy-note">Камера доимий ишламайди · Белгидан сўнг автоматик ўчади</div>
     </section>
-    <section id="cameraView" class="camera-view hidden"><div class="camera-card"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="shade"></div><button id="cancelCameraBtn" class="camera-back" aria-label="Орқа">‹</button><div class="camera-top-status"><span id="modeBadge" class="mode-badge">КЕЛДИ</span><h1 id="instruction">Камерага қаранг</h1><p id="subInstruction">Юзингизни рамка ичида ушланг</p></div><div class="face-guide"><div id="faceScanner" class="face-scanner"><div id="scanTicks" class="scan-ticks" aria-hidden="true"></div><div class="face-oval"></div></div><div id="enrollCounter" class="enroll-counter hidden">0 / 6</div></div><div id="cameraStatus" class="camera-status">КАМЕРА ЁҚИЛМОҚДА…</div><div id="cameraTimeout" class="camera-timeout"></div></div></section>
+    <section id="cameraView" class="camera-view hidden"><div class="camera-card"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas><div class="shade"></div><button id="cancelCameraBtn" class="camera-back" aria-label="Орқа">‹</button><div class="camera-top-status"><span id="modeBadge" class="mode-badge">КЕЛДИ</span><h1 id="instruction">Камерага қаранг</h1><p id="subInstruction">Юзингизни рамка ичида ушланг</p></div><div class="face-guide"><div id="faceScanner" class="face-scanner"><div id="scanTicks" class="scan-ticks" aria-hidden="true"></div><div class="face-oval"></div></div><div id="enrollCounter" class="enroll-counter hidden">0 / 6</div></div><div id="cameraStatus" class="camera-status">КАМЕРАГА РУХСАТ БЕРИНГ</div><div id="cameraTimeout" class="camera-timeout"></div></div></section>
     <section id="resultView" class="result-view hidden"><div id="resultIcon" class="result-icon">✓</div><h1 id="resultTitle">МУВАФФАҚИЯТЛИ</h1><h2 id="resultName"></h2><p id="resultPosition"></p><div id="resultType" class="result-type">КЕЛДИ</div><div id="resultTime" class="result-time">08:50</div><p id="resultNote">Белги сақланди</p></section>
   </main>
   <div id="modal" class="modal hidden"><div class="modal-card"><button id="modalClose" class="modal-x">×</button><div id="modalContent"></div></div></div><div id="toast" class="toast hidden"></div>
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js"></script>
-  <script src="app.js?v=1.1.0"></script>
+  <script src="app.js?v=1.1.1"></script>
 </body></html>
