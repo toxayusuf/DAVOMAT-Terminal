@@ -2,7 +2,7 @@
 'use strict';
 
 const $ = s => document.querySelector(s);
-const VERSION = '1.1.0';
+const VERSION = '1.1.1';
 const CFG_KEY = 'davomat-terminal-config-v2';
 const Q_KEY = 'davomat-offline-queue-v2';
 const MODEL = 'https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/';
@@ -18,6 +18,7 @@ const S = {
   samples: 6,
   pending: null,
   mode: null,
+  retryMode: null,
   busy: false,
   running: false,
   hit: null,
@@ -38,7 +39,10 @@ const MSG = {
   ENROLLMENT_CODE_EXPIRED: 'Рўйхатга олиш вақти тугади',
   ENROLLMENT_DEVICE_MISMATCH: 'Рўйхатга олиш бошқа қурилма учун',
   ENROLL_FAILED: 'Юзни сақлашда хато',
-  CONFIG_REQUIRED: 'DAVOMAT ни админкадаги «Телефон/планшетни улаш» орқали бир марта очинг'
+  CONFIG_REQUIRED: 'DAVOMAT ни админкадаги «Телефон/планшетни улаш» орқали бир марта очинг',
+  CAMERA_PERMISSION_DENIED: 'Камерага рухсат берилмаган',
+  CAMERA_UNAVAILABLE: 'Камера топилмади ёки браузер камерани қўлламайди',
+  CAMERA_INSECURE: 'Камера фақат хавфсиз HTTPS саҳифада ишлайди'
 };
 
 const friendly = e => MSG[String(e?.message || e || '')] || String(e?.message || e || 'Номаълум хато');
@@ -54,12 +58,12 @@ function tdate(d) {
 function show(id) {
   ['loadingView','setupView','idleView','cameraView','resultView'].forEach(x => $('#'+x).classList.toggle('hidden', x !== id));
 }
-function toast(x) {
+function toast(x, ms=3200) {
   const e = $('#toast');
   e.textContent = x;
   e.classList.remove('hidden');
   clearTimeout(toast.t);
-  toast.t = setTimeout(() => e.classList.add('hidden'), 2800);
+  toast.t = setTimeout(() => e.classList.add('hidden'), ms);
 }
 function instruction(a,b='') {
   $('#instruction').textContent = a;
@@ -279,15 +283,120 @@ function renderPending(){
   }
 }
 
+function browserKind(){
+  const ua=navigator.userAgent||'';
+  const ios=/iPhone|iPad|iPod/i.test(ua);
+  const android=/Android/i.test(ua);
+  const chrome=/Chrome|CriOS/i.test(ua) && !/Edg|OPR/i.test(ua);
+  const safari=/Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
+  const inApp=/(FBAN|FBAV|Instagram|Line\/|Telegram|GSA\/|YaBrowser|DuckDuckGo|wv\))/i.test(ua);
+  return {ua,ios,android,chrome,safari,inApp};
+}
+
+async function permissionState(){
+  try{
+    if(!navigator.permissions?.query) return 'unknown';
+    const st=await navigator.permissions.query({name:'camera'});
+    return st?.state||'unknown';
+  }catch{
+    return 'unknown';
+  }
+}
+
+function cameraHelp(mode, err){
+  S.retryMode=mode;
+  const b=browserKind();
+  const name=String(err?.name||'');
+  const detail=String(err?.cause?.message||err?.message||'');
+  let steps='';
+
+  if(b.ios){
+    steps = `
+      <div style="text-align:left;line-height:1.55;margin-top:10px">
+        <b>iPhone / iPad:</b><br>
+        1. Агар DAVOMAT илова ичида очилган бўлса, юқоридаги <b>•••</b> менюдан <b>Safari'да очиш</b> ни танланг.<br>
+        2. Safari'да манзил ёнидаги <b>aA</b> → <b>Website Settings</b> → <b>Camera → Allow</b>.<br>
+        3. Кейин пастдаги <b>ҚАЙТА СИНАШ</b> ни босинг.
+      </div>`;
+  }else if(b.android){
+    steps = `
+      <div style="text-align:left;line-height:1.55;margin-top:10px">
+        <b>Android:</b><br>
+        Манзил ёнидаги сайт белгиси → <b>Permissions / Камера</b> → <b>Allow</b>, сўнг <b>ҚАЙТА СИНАШ</b>.
+      </div>`;
+  }else{
+    steps = `
+      <div style="text-align:left;line-height:1.55;margin-top:10px">
+        <b>Chrome / Edge:</b><br>
+        Манзил сатридаги сайт белгиси → <b>Camera</b> → <b>Allow</b> → саҳифани янгиланг.
+      </div>`;
+  }
+
+  $('#modalContent').innerHTML = `
+    <h2>Камерага рухсат керак</h2>
+    <p>DAVOMAT камерани ўзи мажбуран ёқа олмайди — браузер ёки телефон рухсат бериши шарт.</p>
+    ${steps}
+    <div class="service-stat" style="margin-top:14px"><span>Хато</span><b>${name||'Permission'}</b></div>
+    <div class="hint" style="word-break:break-word;margin-top:8px">${detail}</div>
+    <button id="cameraRetry" class="primary-btn" style="margin-top:16px">ҚАЙТА СИНАШ</button>
+  `;
+  $('#modal').classList.remove('hidden');
+  $('#cameraRetry').onclick=()=>{
+    $('#modal').classList.add('hidden');
+    session(S.retryMode||mode);
+  };
+}
+
 async function startCamera(){
   await stopCamera();
-  S.stream=await navigator.mediaDevices.getUserMedia({
-    video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},
-    audio:false
-  });
-  $('#video').srcObject=S.stream;
-  await $('#video').play();
+
+  if(!window.isSecureContext) throw new Error('CAMERA_INSECURE');
+  if(!navigator.mediaDevices?.getUserMedia) throw new Error('CAMERA_UNAVAILABLE');
+
+  if(document.visibilityState!=='visible'){
+    await new Promise(resolve=>{
+      const done=()=>{ if(document.visibilityState==='visible'){document.removeEventListener('visibilitychange',done);resolve();} };
+      document.addEventListener('visibilitychange',done);
+      setTimeout(()=>{document.removeEventListener('visibilitychange',done);resolve();},1500);
+    });
+  }
+
+  const state=await permissionState();
+  if(state==='denied'){
+    const e=new Error('CAMERA_PERMISSION_DENIED');
+    e.name='NotAllowedError';
+    throw e;
+  }
+
+  const attempts=[
+    {video:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480}},audio:false},
+    {video:true,audio:false}
+  ];
+  let last=null;
+  for(const constraints of attempts){
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia(constraints);
+      S.stream=stream;
+      $('#video').srcObject=stream;
+      $('#video').setAttribute('playsinline','');
+      $('#video').muted=true;
+      await $('#video').play();
+      return stream;
+    }catch(e){
+      last=e;
+      if(e?.name==='NotAllowedError'||e?.name==='SecurityError') break;
+      if(!(e?.name==='OverconstrainedError'||e?.name==='NotFoundError'||e?.name==='AbortError')) break;
+    }
+  }
+  if(last?.name==='NotAllowedError'||last?.name==='SecurityError'){
+    const e=new Error('CAMERA_PERMISSION_DENIED');
+    e.name=last.name;
+    e.cause=last;
+    throw e;
+  }
+  throw last||new Error('CAMERA_UNAVAILABLE');
 }
+
 async function stopCamera(){
   S.running=false;
   if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null;}
@@ -483,7 +592,7 @@ async function loop(){
 async function session(mode){
   if(S.running||S.busy)return;
   if(mode==='ENROLL'&&!S.pending)return toast('Рўйхатга олиш вазифаси йўқ');
-  S.mode=mode;S.hit=null;S.hits=0;
+  S.mode=mode;S.retryMode=mode;S.hit=null;S.hits=0;
   show('cameraView');
   document.querySelector('.camera-card').classList.toggle('enroll-mode',mode==='ENROLL');
   $('#faceScanner').className='face-scanner '+(mode==='ENROLL'?'enrolling':'recognizing');
@@ -492,16 +601,32 @@ async function session(mode){
   $('#enrollCounter').textContent=`0 / ${S.samples}`;
   instruction(
     mode==='ENROLL'?S.pending.employee.fullName:(mode==='IN'?'КЕЛДИ':'КЕТДИ'),
-    mode==='ENROLL'?'Бошингизни секин айлантиринг':'Камера тайёрланмоқда…'
+    'Камерага рухсат кутилмоқда…'
   );
+  $('#cameraStatus').textContent='КАМЕРАГА РУХСАТ БЕРИНГ';
   ring(0);
+
   try{
-    await Promise.all([startCamera(),initHuman()]);
+    await startCamera();
+    $('#cameraStatus').textContent='ЮЗ МОДЕЛИ ТАЙЁРЛАНМОҚДА…';
+    instruction(
+      mode==='ENROLL'?S.pending.employee.fullName:(mode==='IN'?'КЕЛДИ':'КЕТДИ'),
+      mode==='ENROLL'?'Бошингизни секин айлантиринг':'Камерага қаранг'
+    );
+    await initHuman();
+    $('#cameraStatus').textContent='ТАЙЁР';
     S.running=true;
     loop();
   }catch(e){
-    idle();
-    toast('Камера очилмади: '+friendly(e));
+    console.error('camera/session',e);
+    await stopCamera();
+    S.busy=false;
+    show('idleView');
+    if(e?.message==='CAMERA_PERMISSION_DENIED'||e?.name==='NotAllowedError'||e?.name==='SecurityError'){
+      cameraHelp(mode,e);
+    }else{
+      toast('Камера очилмади: '+friendly(e),5000);
+    }
   }
 }
 
@@ -534,7 +659,8 @@ async function boot(){
       await loadEnrollment(lp.enroll);
       S.samples=6;
       $('#loadingDetail').textContent='Камера тайёрланмоқда';
-      await session('ENROLL');
+      show('idleView');
+      renderPending();
       return;
     }
 
@@ -579,7 +705,7 @@ $('#modalClose').onclick=()=>$('#modal').classList.add('hidden');
 $('#modal').onclick=e=>{if(e.target===$('#modal'))$('#modal').classList.add('hidden')};
 
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js?v=1.1.0').catch(()=>{});
+  navigator.serviceWorker.register('./sw.js?v=1.1.1').catch(()=>{});
 }
 
 boot();
