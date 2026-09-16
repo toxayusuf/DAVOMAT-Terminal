@@ -1,48 +1,586 @@
 (() => {
 'use strict';
-const $=s=>document.querySelector(s), VERSION='1.0.0', Q='davomat-offline-queue-v1';
-const MODEL='https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/';
-const S={human:null,humanInit:null,stream:null,profiles:[],employees:new Map(),thr:{match:.62,live:.55,real:.55},samples:6,pending:null,mode:null,busy:false,running:false,hit:null,hits:0,rpcNonce:'',rpcPending:new Map(),purpose:'attendance',launchEmployee:''};
-const msg={DEVICE_AUTH_FAILED:'Қурилма рухсати рад этилди',EMPLOYEE_NOT_FOUND:'Ходим топилмади',FACE_PROOF_LOW:'Юз текширувидан ўтмади',EVENT_TYPE_MISMATCH:'Нотўғри тугма танланди',ALREADY_MARKED:'Белги жуда тез такрорланди',NETWORK_ERROR:'Интернет билан алоқа йўқ',HOST_REQUIRED:'DAVOMAT терминали админка ёки планшет саҳифаси орқали очилиши керак',HOST_CLOSED:'DAVOMAT сервер ойнаси ёпилган',TIMEOUT:'Сервер жавоб бермади',ENROLLMENT_LAUNCH_INVALID:'Рўйхатга олиш ҳаволаси яроқсиз'};
-const friendly=e=>msg[String(e?.message||e||'')]||String(e?.message||e||'Номаълум хато');
-const uuid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2);
-const ttime=d=>new Intl.DateTimeFormat('uz-UZ',{timeZone:'Asia/Tashkent',hour:'2-digit',minute:'2-digit'}).format(d||new Date());
-const tdate=d=>new Intl.DateTimeFormat('uz-UZ',{timeZone:'Asia/Tashkent',day:'2-digit',month:'long',year:'numeric'}).format(d||new Date());
-function show(id){['loadingView','setupView','idleView','cameraView','resultView'].forEach(x=>$('#'+x).classList.toggle('hidden',x!==id));}
-function toast(x){const e=$('#toast');e.textContent=x;e.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hidden'),2500)}
-function instruction(a,b=''){ $('#instruction').textContent=a; $('#subInstruction').textContent=b; }
-function net(){const b=$('#netBadge'),on=navigator.onLine;b.textContent=on?'ОНЛАЙН':'ОФЛАЙН';b.className='badge '+(on?'online':'offline');}
-function launchParams(){const p=new URLSearchParams(location.search);return {purpose:(p.get('purpose')||'attendance').trim(),employee:(p.get('employee')||'').trim(),nonce:(p.get('nonce')||'').trim()}}
-function openerOriginOk(origin){try{const h=new URL(origin).hostname;return h==='script.google.com'||h.endsWith('.googleusercontent.com')}catch{return false}}
-function rpcMessage(ev){const m=ev.data||{};if(ev.source!==window.opener||!openerOriginOk(ev.origin)||m.channel!=='DAVOMAT_RPC_RESULT'||m.nonce!==S.rpcNonce||!m.id)return;const p=S.rpcPending.get(m.id);if(!p)return;S.rpcPending.delete(m.id);clearTimeout(p.timer);if(m.ok)p.resolve(m.result);else p.reject(new Error(m.error||'SERVER_ERROR'))}
-window.addEventListener('message',rpcMessage);
-function openerCall(kind,data={},timeout=30000){return new Promise((resolve,reject)=>{if(!window.opener||window.opener.closed){reject(new Error('HOST_REQUIRED'));return}const id=uuid(),timer=setTimeout(()=>{S.rpcPending.delete(id);reject(new Error('TIMEOUT'))},timeout);S.rpcPending.set(id,{resolve,reject,timer});try{window.opener.postMessage(Object.assign({channel:'DAVOMAT_RPC',nonce:S.rpcNonce,id,kind},data||{}),'*')}catch(e){clearTimeout(timer);S.rpcPending.delete(id);reject(e)}})}
-function rpc(request,timeout){return openerCall('rpc',{request},timeout||45000)}
-function qload(){try{return JSON.parse(localStorage.getItem(Q)||'[]')}catch{return[]}}
-function qsave(a){localStorage.setItem(Q,JSON.stringify(a))}
-async function syncQueue(){if(!navigator.onLine||!window.opener||window.opener.closed)return;const a=qload(),left=[];for(let i=0;i<a.length;i++){const ev=a[i];try{const r=await rpc({api:ev.action,payload:ev},45000);if(!r?.ok)throw new Error(r?.reason||r?.error||'SYNC_REJECTED')}catch(e){left.push(...a.slice(i));break}}qsave(left)}
-function ticks(){const w=$('#scanTicks');w.innerHTML='';for(let i=0;i<36;i++){const e=document.createElement('span');e.className='scan-tick';e.style.transform=`translate(-50%,-50%) rotate(${i*10}deg) translateY(-190px)`;w.appendChild(e)}}
-function ring(f=0){const a=[...document.querySelectorAll('.scan-tick')],n=Math.round(Math.max(0,Math.min(1,f))*a.length);a.forEach((e,i)=>{e.classList.toggle('done',i<n);e.classList.toggle('active',i===n&&n<a.length)})}
-async function initHuman(){if(S.human)return S.human;if(S.humanInit)return S.humanInit;S.humanInit=(async()=>{S.human=new Human.Human({backend:'webgl',modelBasePath:MODEL,cacheSensitivity:.7,face:{enabled:true,detector:{rotation:true,maxDetected:1},mesh:{enabled:true},description:{enabled:true},iris:{enabled:false},emotion:{enabled:false},antispoof:{enabled:true},liveness:{enabled:true}},body:{enabled:false},hand:{enabled:false},object:{enabled:false}});await S.human.load();await S.human.warmup();return S.human})().catch(e=>{S.human=null;S.humanInit=null;throw e});return S.humanInit}
-async function bootstrap(){const r=await rpc({api:'bootstrap'},45000);if(!r?.ok)throw new Error(r?.error||'BOOTSTRAP_FAILED');S.profiles=r.profiles||[];S.employees=new Map((r.employees||[]).map(e=>[String(e.employeeId),e]));S.thr={match:+r.settings?.matchThreshold||.62,live:+r.settings?.livenessThreshold||.55,real:+r.settings?.realnessThreshold||.55};S.samples=Math.max(6,Math.min(8,+r.settings?.enrollSampleCount||6));return r}
-function renderPending(){const b=$('#enrollBanner');b.classList.toggle('hidden',!S.pending);if(S.pending){$('#enrollBannerName').textContent=S.pending.employee?.fullName||'Ходим';$('#startEnrollBtn').textContent='РЎЙХАТГА ОЛИШНИ БОШЛАШ'}}
-async function startCamera(){await stopCamera();S.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:false});$('#video').srcObject=S.stream;await $('#video').play()}
-async function stopCamera(){S.running=false;if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null}$('#video').srcObject=null}
-function photo(){const v=$('#video'),c=document.createElement('canvas');c.width=Math.min(v.videoWidth||640,800);c.height=Math.round(c.width*(v.videoHeight||480)/(v.videoWidth||640));c.getContext('2d').drawImage(v,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.72)}
-function sim(a,b){let dot=0,aa=0,bb=0;for(let i=0;i<Math.min(a.length,b.length);i++){dot+=a[i]*b[i];aa+=a[i]*a[i];bb+=b[i]*b[i]}return dot/(Math.sqrt(aa)*Math.sqrt(bb)||1)}
-function quality(f){return {emb:f?.embedding||[],live:Number(f?.live??0),real:Number(f?.real??0),score:Number(f?.score??0),size:Number(f?.box?.[2]||0)}}
-function match(emb){const best=new Map();for(const p of S.profiles){const s=sim(emb,p.embedding||[]),id=String(p.employeeId);if(!best.has(id)||s>best.get(id))best.set(id,s)}const a=[...best].sort((x,y)=>y[1]-x[1]);if(!a.length)return null;const [id,score]=a[0],second=a[1]?.[1]||0;if(score<S.thr.match||score-second<.035)return null;return {emp:S.employees.get(id),score}}
-async function success(r){await stopCamera();show('resultView');$('#resultIcon').textContent='✓';$('#resultTitle').textContent='МУВАФФАҚИЯТЛИ';$('#resultName').textContent=r.fullName||'';$('#resultPosition').textContent=r.position||'';$('#resultType').textContent=r.eventType==='OUT'?'КЕТДИ':'КЕЛДИ';$('#resultTime').textContent=ttime(new Date(r.serverTime||Date.now()));$('#resultNote').textContent='Белги сақланди';setTimeout(idle,2200)}
-async function fail(x){await stopCamera();show('resultView');$('#resultIcon').textContent='!';$('#resultTitle').textContent='БЕЛГИЛАНМАДИ';$('#resultName').textContent='';$('#resultPosition').textContent='';$('#resultType').textContent='';$('#resultTime').textContent='';$('#resultNote').textContent=x;setTimeout(idle,3000)}
-function idle(){stopCamera();S.mode=null;S.busy=false;S.hit=null;S.hits=0;show('idleView');ring(0);renderPending()}
-async function attendance(face){const q=quality(face);if(q.live<S.thr.live||q.real<S.thr.real||!q.emb.length)return instruction('Камерага қаранг','Юзни тўғри ёритинг');const m=match(q.emb);if(!m?.emp){S.hit=null;S.hits=0;return instruction('Юз аниқланмади','Камерага тўғри қаранг')}if(S.hit===m.emp.employeeId)S.hits++;else{S.hit=m.emp.employeeId;S.hits=1}ring(Math.min(1,S.hits/3));if(S.hits<3)return instruction(m.emp.fullName,'Текширилмоқда…');S.busy=true;const id=uuid(),ev={id,requestId:id,action:'attendance',eventId:id,employeeId:m.emp.employeeId,clientTime:new Date().toISOString(),requestedEventType:S.mode,clientSuggestedType:S.mode,matchScore:m.score,livenessScore:q.live,realScore:q.real,blinkOk:false,photoDataUrl:photo(),offline:!navigator.onLine};try{if(!navigator.onLine){const a=qload();a.push(ev);qsave(a);await stopCamera();return success({fullName:m.emp.fullName,position:m.emp.position,eventType:S.mode,serverTime:new Date().toISOString()})}const r=await rpc({api:'attendance',payload:ev},60000);if(!r?.ok)throw new Error(r?.reason||r?.error||'SERVER_REJECTED');await success(r)}catch(e){await fail(friendly(e))}}
-async function enroll(face){const en=S.pending?._enroll||(S.pending._enroll={arr:[],last:null,lastAt:0});const q=quality(face);if(q.live<S.thr.live||q.real<S.thr.real||!q.emb.length||q.size<120)return instruction(S.pending.employee.fullName,'Юзни рамка ичида ушланг');if(Date.now()-en.lastAt<320)return;if(en.last&&sim(q.emb,en.last)>.9994)return instruction(S.pending.employee.fullName,'Бошингизни секин айлантиринг');en.arr.push({embedding:Array.from(q.emb,v=>Math.round(v*1e6)/1e6),quality:(q.live+q.real+q.score)/3,pose:'sample-'+(en.arr.length+1)});en.last=Array.from(q.emb);en.lastAt=Date.now();ring(en.arr.length/S.samples);$('#enrollCounter').textContent=`${en.arr.length} / ${S.samples}`;instruction(S.pending.employee.fullName,en.arr.length<S.samples?'Бошингизни секин айлантиринг':'Юз сақланмоқда…');if(en.arr.length<S.samples)return;S.busy=true;const id=uuid();try{const payload={id,requestId:id,action:'enroll',enrollmentCode:S.pending.code,samples:en.arr};const r=await rpc({api:'enroll',payload},65000);if(!r?.ok)throw new Error(r?.error||'ENROLL_FAILED');const empId=S.pending.employee?.employeeId||'';S.pending=null;await stopCamera();show('resultView');$('#resultIcon').textContent='✓';$('#resultTitle').textContent='ЮЗ ТАЙЁР';$('#resultName').textContent=r.fullName||'';$('#resultPosition').textContent='';$('#resultType').textContent='';$('#resultTime').textContent='';$('#resultNote').textContent='Ходим рўйхатдан ўтди';openerCall('event',{event:'enrolled',employeeId:empId},5000).catch(()=>{});setTimeout(()=>{try{window.close()}catch{}},1800)}catch(e){await fail('Рўйхатга олиш хатоси: '+friendly(e))}}
-async function loop(){if(!S.running)return;requestAnimationFrame(loop);if(S.busy||loop.last&&performance.now()-loop.last<320)return;loop.last=performance.now();try{const r=await S.human.detect($('#video'));const f=r?.face?.[0];if(!f){ring(0);return instruction(S.mode==='ENROLL'?(S.pending?.employee?.fullName||'Ходим'):(S.mode==='IN'?'КЕЛДИ':'КЕТДИ'),'Юзингизни рамка ичида ушланг')}if(S.mode==='ENROLL')await enroll(f);else await attendance(f)}catch(e){console.error(e)}}
-async function session(mode){if(S.running||S.busy)return;if(mode==='ENROLL'&&!S.pending)return toast('Рўйхатга олиш вазифаси йўқ');S.mode=mode;S.hit=null;S.hits=0;show('cameraView');document.querySelector('.camera-card').classList.toggle('enroll-mode',mode==='ENROLL');$('#faceScanner').className='face-scanner '+(mode==='ENROLL'?'enrolling':'recognizing');$('#enrollCounter').classList.toggle('hidden',mode!=='ENROLL');$('#modeBadge').textContent=mode==='IN'?'КЕЛДИ':mode==='OUT'?'КЕТДИ':'ЮЗНИ РЎЙХАТГА ОЛИШ';$('#enrollCounter').textContent=`0 / ${S.samples}`;instruction(mode==='ENROLL'?S.pending.employee.fullName:(mode==='IN'?'КЕЛДИ':'КЕТДИ'),mode==='ENROLL'?'Бошингизни секин айлантиринг':'Камера тайёрланмоқда…');ring(0);try{await Promise.all([startCamera(),initHuman()]);S.running=true;loop()}catch(e){idle();toast('Камера очилмади: '+friendly(e))}}
-function service(){const q=qload().length;$('#modalContent').innerHTML=`<h2>Сервис</h2><div class="service-grid"><div class="service-stat"><span>Версия</span><b>${VERSION}</b></div><div class="service-stat"><span>Юзли ходимлар</span><b>${S.employees.size}</b></div><div class="service-stat"><span>Офлайн навбат</span><b>${q}</b></div><div class="service-stat"><span>Камера</span><b>${S.stream?'ЁҚИЛГАН':'ЎЧИҚ'}</b></div></div><button id="reload" class="secondary-btn">Базани янгилаш</button>`;$('#modal').classList.remove('hidden');$('#reload').onclick=()=>bootstrap().then(()=>toast('База янгиланди')).catch(e=>toast(friendly(e)))}
-async function boot(){const lp=launchParams();S.rpcNonce=lp.nonce;S.purpose=lp.purpose;S.launchEmployee=lp.employee;try{show('loadingView');if(!window.opener||window.opener.closed||!S.rpcNonce)throw new Error('HOST_REQUIRED');if(lp.purpose==='enroll'){if(!lp.employee)throw new Error('ENROLLMENT_LAUNCH_INVALID');$('#loadingTitle').textContent='Рўйхатга олиш тайёрланмоқда…';$('#loadingDetail').textContent='Ходим маълумоти олинмоқда';const begin=await openerCall('beginEnrollment',{employeeId:lp.employee},20000);if(!begin?.ok||!begin.code||!begin.employee)throw new Error(begin?.error||'ENROLLMENT_LAUNCH_INVALID');S.pending={pending:true,code:begin.code,employee:begin.employee};S.samples=6;renderPending();$('#loadingDetail').textContent='Камера тайёрланмоқда';await session('ENROLL');return}$('#loadingTitle').textContent='DAVOMAT тайёрланмоқда…';$('#loadingDetail').textContent='Маълумотлар олинмоқда';await bootstrap();show('idleView');initHuman().catch(e=>console.warn('human preload',e));syncQueue();setInterval(()=>navigator.onLine&&syncQueue(),30000)}catch(e){console.error(e);await stopCamera();show('setupView');$('#setupError').textContent=lp.purpose==='enroll'?'Рўйхатга олиш бошланмади. Админкадан қайта босинг.':'Терминал очилмади.';const detail=$('#setupDetail');if(detail)detail.textContent=friendly(e)}}
-function clock(){const n=new Date();$('#idleClock').textContent=ttime(n);$('#idleDate').textContent=tdate(n)}
-ticks();clock();setInterval(clock,1000);net();window.addEventListener('online',()=>{net();syncQueue()});window.addEventListener('offline',net);
-$('#retrySetupBtn').onclick=()=>location.reload();$('#inBtn').onclick=()=>session('IN');$('#outBtn').onclick=()=>session('OUT');$('#startEnrollBtn').onclick=()=>session('ENROLL');$('#cancelCameraBtn').onclick=idle;$('#adminBtn').onclick=service;$('#modalClose').onclick=()=>$('#modal').classList.add('hidden');$('#modal').onclick=e=>{if(e.target===$('#modal'))$('#modal').classList.add('hidden')};
+
+const $ = s => document.querySelector(s);
+const VERSION = '1.1.0';
+const CFG_KEY = 'davomat-terminal-config-v2';
+const Q_KEY = 'davomat-offline-queue-v2';
+const MODEL = 'https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/';
+
+const S = {
+  cfg: null,
+  human: null,
+  humanInit: null,
+  stream: null,
+  profiles: [],
+  employees: new Map(),
+  thr: {match:.62, live:.55, real:.55},
+  samples: 6,
+  pending: null,
+  mode: null,
+  busy: false,
+  running: false,
+  hit: null,
+  hits: 0,
+  pollTimer: null
+};
+
+const MSG = {
+  DEVICE_AUTH_FAILED: 'Қурилма рухсати рад этилди',
+  EMPLOYEE_NOT_FOUND: 'Ходим топилмади',
+  FACE_PROOF_LOW: 'Юз текширувидан ўтмади',
+  EVENT_TYPE_INVALID: 'Нотўғри белги тури',
+  EVENT_TYPE_MISMATCH: 'Нотўғри тугма танланди',
+  ALREADY_MARKED: 'Белги аллақачон қабул қилинган. Бироз кутинг.',
+  NETWORK_ERROR: 'Интернет билан алоқа йўқ',
+  TIMEOUT: 'Сервер жавоб бермади',
+  ENROLLMENT_CODE_NOT_FOUND: 'Рўйхатга олиш вазифаси топилмади',
+  ENROLLMENT_CODE_EXPIRED: 'Рўйхатга олиш вақти тугади',
+  ENROLLMENT_DEVICE_MISMATCH: 'Рўйхатга олиш бошқа қурилма учун',
+  ENROLL_FAILED: 'Юзни сақлашда хато',
+  CONFIG_REQUIRED: 'DAVOMAT ни админкадаги «Телефон/планшетни улаш» орқали бир марта очинг'
+};
+
+const friendly = e => MSG[String(e?.message || e || '')] || String(e?.message || e || 'Номаълум хато');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const uuid = () => crypto.randomUUID ? crypto.randomUUID() : Date.now()+'-'+Math.random().toString(16).slice(2);
+
+function ttime(d) {
+  return new Intl.DateTimeFormat('uz-UZ',{timeZone:'Asia/Tashkent',hour:'2-digit',minute:'2-digit'}).format(d || new Date());
+}
+function tdate(d) {
+  return new Intl.DateTimeFormat('uz-UZ',{timeZone:'Asia/Tashkent',day:'2-digit',month:'long',year:'numeric'}).format(d || new Date());
+}
+function show(id) {
+  ['loadingView','setupView','idleView','cameraView','resultView'].forEach(x => $('#'+x).classList.toggle('hidden', x !== id));
+}
+function toast(x) {
+  const e = $('#toast');
+  e.textContent = x;
+  e.classList.remove('hidden');
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => e.classList.add('hidden'), 2800);
+}
+function instruction(a,b='') {
+  $('#instruction').textContent = a;
+  $('#subInstruction').textContent = b;
+}
+function net() {
+  const b=$('#netBadge'), on=navigator.onLine;
+  b.textContent = on ? 'ОНЛАЙН' : 'ОФЛАЙН';
+  b.className = 'badge ' + (on ? 'online' : 'offline');
+}
+function validCfg(c) {
+  return !!(c && /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/.test(String(c.url||'')) && c.deviceId && c.deviceToken);
+}
+function saveCfg(c) {
+  localStorage.setItem(CFG_KEY, JSON.stringify(c));
+  S.cfg = c;
+}
+function loadCfg() {
+  try { return JSON.parse(localStorage.getItem(CFG_KEY)||'null'); } catch { return null; }
+}
+function launchParams() {
+  const p = new URLSearchParams(location.search);
+  return {
+    purpose:(p.get('purpose')||'attendance').trim(),
+    enroll:(p.get('enroll')||'').trim()
+  };
+}
+function decodeCfgHash() {
+  try {
+    const p = new URLSearchParams(location.hash.slice(1));
+    const raw = p.get('cfg');
+    if (!raw) return null;
+    let x = raw.replace(/-/g,'+').replace(/_/g,'/');
+    x += '='.repeat((4-x.length%4)%4);
+    const text = new TextDecoder().decode(Uint8Array.from(atob(x), ch => ch.charCodeAt(0)));
+    const cfg = JSON.parse(text);
+    return validCfg(cfg) ? cfg : null;
+  } catch (e) {
+    console.warn('cfg hash', e);
+    return null;
+  }
+}
+function importLaunchConfig() {
+  const cfg = decodeCfgHash();
+  if (cfg) {
+    saveCfg(cfg);
+    try { history.replaceState(null,'',location.pathname+location.search); } catch {}
+  }
+}
+
+function jsonp(api, params={}, timeout=25000) {
+  return new Promise((resolve,reject) => {
+    if (!S.cfg) return reject(new Error('CONFIG_REQUIRED'));
+    const cb = '__davomat_cb_' + uuid().replace(/[^A-Za-z0-9_$]/g,'');
+    const s = document.createElement('script');
+    let done = false;
+    let timer = null;
+    const cleanup = () => {
+      if (done) return;
+      done = true;
+      if (timer) clearTimeout(timer);
+      try { delete window[cb]; } catch { window[cb] = undefined; }
+      try { s.remove(); } catch {}
+    };
+    window[cb] = data => { cleanup(); resolve(data); };
+    const u = new URL(S.cfg.url);
+    u.searchParams.set('api', api);
+    u.searchParams.set('device_id', S.cfg.deviceId);
+    u.searchParams.set('device_token', S.cfg.deviceToken);
+    Object.keys(params||{}).forEach(k => {
+      const v = params[k];
+      if (v !== undefined && v !== null && v !== '') u.searchParams.set(k, String(v));
+    });
+    u.searchParams.set('callback', cb);
+    u.searchParams.set('_', String(Date.now()));
+    s.async = true;
+    s.src = u.toString();
+    s.onerror = () => { cleanup(); reject(new Error('NETWORK_ERROR')); };
+    timer = setTimeout(() => { cleanup(); reject(new Error('TIMEOUT')); }, timeout);
+    document.head.appendChild(s);
+  });
+}
+
+async function postAndWait(action, payload, timeout=70000) {
+  if (!S.cfg) throw new Error('CONFIG_REQUIRED');
+  const requestId = payload.requestId || payload.request_id || uuid();
+  const body = Object.assign({}, payload, {
+    action,
+    requestId,
+    deviceId:S.cfg.deviceId,
+    deviceToken:S.cfg.deviceToken
+  });
+
+  try {
+    await fetch(S.cfg.url, {
+      method:'POST',
+      mode:'no-cors',
+      redirect:'follow',
+      cache:'no-store',
+      headers:{'Content-Type':'text/plain;charset=UTF-8'},
+      body:JSON.stringify(body)
+    });
+  } catch (e) {
+    throw new Error('NETWORK_ERROR');
+  }
+
+  const started = Date.now();
+  while (Date.now()-started < timeout) {
+    const r = await jsonp('requestStatus', {request_id:requestId}, 15000);
+    if (r?.found) {
+      if (r.status === 'DONE') return r.result || {ok:true};
+      if (r.status === 'ERROR') {
+        const er = r.result?.error || r.message || 'SERVER_ERROR';
+        throw new Error(er);
+      }
+    }
+    await sleep(650);
+  }
+  throw new Error('TIMEOUT');
+}
+
+function qload(){ try{return JSON.parse(localStorage.getItem(Q_KEY)||'[]')}catch{return[]} }
+function qsave(a){ localStorage.setItem(Q_KEY,JSON.stringify(a)) }
+async function syncQueue(){
+  if(!navigator.onLine || !S.cfg) return;
+  const a=qload(), left=[];
+  for(let i=0;i<a.length;i++){
+    const ev=a[i];
+    try{
+      const r=await postAndWait(ev.action,ev,70000);
+      if(!r?.ok) throw new Error(r?.reason||r?.error||'SYNC_REJECTED');
+    }catch(e){
+      left.push(...a.slice(i));
+      break;
+    }
+  }
+  qsave(left);
+}
+
+function ticks(){
+  const w=$('#scanTicks');
+  w.innerHTML='';
+  for(let i=0;i<36;i++){
+    const e=document.createElement('span');
+    e.className='scan-tick';
+    e.style.transform=`translate(-50%,-50%) rotate(${i*10}deg) translateY(-190px)`;
+    w.appendChild(e);
+  }
+}
+function ring(f=0){
+  const a=[...document.querySelectorAll('.scan-tick')];
+  const n=Math.round(Math.max(0,Math.min(1,f))*a.length);
+  a.forEach((e,i)=>{e.classList.toggle('done',i<n);e.classList.toggle('active',i===n&&n<a.length)});
+}
+
+async function initHuman(){
+  if(S.human) return S.human;
+  if(S.humanInit) return S.humanInit;
+  S.humanInit=(async()=>{
+    S.human=new Human.Human({
+      backend:'webgl',
+      modelBasePath:MODEL,
+      cacheSensitivity:.7,
+      face:{
+        enabled:true,
+        detector:{rotation:true,maxDetected:1},
+        mesh:{enabled:true},
+        description:{enabled:true},
+        iris:{enabled:false},
+        emotion:{enabled:false},
+        antispoof:{enabled:true},
+        liveness:{enabled:true}
+      },
+      body:{enabled:false},hand:{enabled:false},object:{enabled:false}
+    });
+    await S.human.load();
+    await S.human.warmup();
+    return S.human;
+  })().catch(e=>{S.human=null;S.humanInit=null;throw e});
+  return S.humanInit;
+}
+
+async function bootstrap(){
+  const r=await jsonp('bootstrap',{},40000);
+  if(!r?.ok) throw new Error(r?.error||'BOOTSTRAP_FAILED');
+  S.profiles=r.profiles||[];
+  S.employees=new Map((r.employees||[]).map(e=>[String(e.employeeId),e]));
+  S.thr={
+    match:+r.settings?.matchThreshold||.62,
+    live:+r.settings?.livenessThreshold||.55,
+    real:+r.settings?.realnessThreshold||.55
+  };
+  S.samples=Math.max(6,Math.min(8,+r.settings?.enrollSampleCount||6));
+  return r;
+}
+async function loadEnrollment(code){
+  const r=await jsonp('enrollment',{code},25000);
+  if(!r?.ok) throw new Error(r?.error||'ENROLLMENT_CODE_NOT_FOUND');
+  S.pending={pending:true,code:r.code,employee:r.employee};
+  renderPending();
+  return r;
+}
+async function pending(){
+  if(!navigator.onLine||!S.cfg||S.running||S.mode==='ENROLL')return;
+  try{
+    const r=await jsonp('pendingEnrollment',{},18000);
+    S.pending=r?.pending?r:null;
+    renderPending();
+  }catch(e){ console.warn('pending enrollment',e); }
+}
+function renderPending(){
+  const b=$('#enrollBanner');
+  b.classList.toggle('hidden',!S.pending);
+  if(S.pending){
+    $('#enrollBannerName').textContent=S.pending.employee?.fullName||'Ходим';
+    $('#startEnrollBtn').textContent='РЎЙХАТГА ОЛИШ';
+  }
+}
+
+async function startCamera(){
+  await stopCamera();
+  S.stream=await navigator.mediaDevices.getUserMedia({
+    video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},
+    audio:false
+  });
+  $('#video').srcObject=S.stream;
+  await $('#video').play();
+}
+async function stopCamera(){
+  S.running=false;
+  if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null;}
+  $('#video').srcObject=null;
+}
+function photo(){
+  const v=$('#video'),c=document.createElement('canvas');
+  c.width=Math.min(v.videoWidth||640,800);
+  c.height=Math.round(c.width*(v.videoHeight||480)/(v.videoWidth||640));
+  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  return c.toDataURL('image/jpeg',.72);
+}
+function sim(a,b){
+  let dot=0,aa=0,bb=0;
+  for(let i=0;i<Math.min(a.length,b.length);i++){dot+=a[i]*b[i];aa+=a[i]*a[i];bb+=b[i]*b[i]}
+  return dot/(Math.sqrt(aa)*Math.sqrt(bb)||1);
+}
+function quality(f){
+  return {
+    emb:f?.embedding||[],
+    live:Number(f?.live??0),
+    real:Number(f?.real??0),
+    score:Number(f?.score??0),
+    size:Number(f?.box?.[2]||0)
+  };
+}
+function match(emb){
+  const best=new Map();
+  for(const p of S.profiles){
+    const s=sim(emb,p.embedding||[]), id=String(p.employeeId);
+    if(!best.has(id)||s>best.get(id))best.set(id,s);
+  }
+  const a=[...best].sort((x,y)=>y[1]-x[1]);
+  if(!a.length)return null;
+  const [id,score]=a[0],second=a[1]?.[1]||0;
+  if(score<S.thr.match||score-second<.035)return null;
+  return {emp:S.employees.get(id),score};
+}
+
+async function success(r){
+  await stopCamera();
+  show('resultView');
+  $('#resultIcon').textContent='✓';
+  $('#resultTitle').textContent='МУВАФФАҚИЯТЛИ';
+  $('#resultName').textContent=r.fullName||'';
+  $('#resultPosition').textContent=r.position||'';
+  $('#resultType').textContent=r.eventType==='OUT'?'КЕТДИ':'КЕЛДИ';
+  $('#resultTime').textContent=ttime(new Date(r.serverTime||Date.now()));
+  $('#resultNote').textContent='Белги сақланди';
+  setTimeout(idle,2200);
+}
+async function fail(x){
+  await stopCamera();
+  show('resultView');
+  $('#resultIcon').textContent='!';
+  $('#resultTitle').textContent='БЕЛГИЛАНМАДИ';
+  $('#resultName').textContent='';
+  $('#resultPosition').textContent='';
+  $('#resultType').textContent='';
+  $('#resultTime').textContent='';
+  $('#resultNote').textContent=x;
+  setTimeout(idle,3200);
+}
+function idle(){
+  stopCamera();
+  S.mode=null;S.busy=false;S.hit=null;S.hits=0;
+  show('idleView');
+  ring(0);
+  renderPending();
+}
+
+async function attendance(face){
+  const q=quality(face);
+  if(q.live<S.thr.live||q.real<S.thr.real||!q.emb.length)
+    return instruction('Камерага қаранг','Юзни тўғри ёритинг');
+
+  const m=match(q.emb);
+  if(!m?.emp){
+    S.hit=null;S.hits=0;
+    return instruction('Юз аниқланмади','Камерага тўғри қаранг');
+  }
+
+  if(S.hit===m.emp.employeeId)S.hits++;else{S.hit=m.emp.employeeId;S.hits=1}
+  ring(Math.min(1,S.hits/3));
+  if(S.hits<3)return instruction(m.emp.fullName,'Текширилмоқда…');
+
+  S.busy=true;
+  const id=uuid();
+  const ev={
+    id,requestId:id,action:'attendance',eventId:id,
+    employeeId:m.emp.employeeId,
+    clientTime:new Date().toISOString(),
+    requestedEventType:S.mode,
+    clientSuggestedType:S.mode,
+    matchScore:m.score,
+    livenessScore:q.live,
+    realScore:q.real,
+    blinkOk:false,
+    photoDataUrl:photo(),
+    offline:!navigator.onLine
+  };
+
+  try{
+    if(!navigator.onLine){
+      const a=qload();a.push(ev);qsave(a);
+      return success({fullName:m.emp.fullName,position:m.emp.position,eventType:S.mode,serverTime:new Date().toISOString()});
+    }
+    const r=await postAndWait('attendance',ev,75000);
+    if(!r?.ok){
+      if(r?.reason==='EVENT_TYPE_MISMATCH'){
+        const need=r.expectedType==='OUT'?'КЕТДИ':'КЕЛДИ';
+        throw new Error('Сизга ҳозир «'+need+'» ни босиш керак');
+      }
+      throw new Error(r?.reason||r?.error||'SERVER_REJECTED');
+    }
+    await success(r);
+    bootstrap().catch(()=>{});
+  }catch(e){
+    await fail(friendly(e));
+  }
+}
+
+async function enroll(face){
+  const en=S.pending?._enroll||(S.pending._enroll={arr:[],last:null,lastAt:0});
+  const q=quality(face);
+  if(q.live<S.thr.live||q.real<S.thr.real||!q.emb.length||q.size<120)
+    return instruction(S.pending.employee.fullName,'Юзни рамка ичида ушланг');
+
+  if(Date.now()-en.lastAt<320)return;
+  if(en.last&&sim(q.emb,en.last)>.9994)
+    return instruction(S.pending.employee.fullName,'Бошингизни секин айлантиринг');
+
+  en.arr.push({
+    embedding:Array.from(q.emb,v=>Math.round(v*1e6)/1e6),
+    quality:(q.live+q.real+q.score)/3,
+    pose:'sample-'+(en.arr.length+1)
+  });
+  en.last=Array.from(q.emb);
+  en.lastAt=Date.now();
+  ring(en.arr.length/S.samples);
+  $('#enrollCounter').textContent=`${en.arr.length} / ${S.samples}`;
+  instruction(S.pending.employee.fullName,en.arr.length<S.samples?'Бошингизни секин айлантиринг':'Юз сақланмоқда…');
+  if(en.arr.length<S.samples)return;
+
+  S.busy=true;
+  const id=uuid();
+  try{
+    const r=await postAndWait('enroll',{
+      id,requestId:id,action:'enroll',
+      enrollmentCode:S.pending.code,
+      samples:en.arr
+    },90000);
+    if(!r?.ok)throw new Error(r?.error||'ENROLL_FAILED');
+
+    await stopCamera();
+    show('resultView');
+    $('#resultIcon').textContent='✓';
+    $('#resultTitle').textContent='ЮЗ ТАЙЁР';
+    $('#resultName').textContent=r.fullName||'';
+    $('#resultPosition').textContent='';
+    $('#resultType').textContent='';
+    $('#resultTime').textContent='';
+    $('#resultNote').textContent='Ходим рўйхатдан ўтди';
+    S.pending=null;
+    setTimeout(()=>{
+      if(history.length>1){ try{history.back();return;}catch{} }
+      idle();
+    },2200);
+  }catch(e){
+    await fail('Рўйхатга олиш хатоси: '+friendly(e));
+  }
+}
+
+async function loop(){
+  if(!S.running)return;
+  requestAnimationFrame(loop);
+  if(S.busy||(loop.last&&performance.now()-loop.last<320))return;
+  loop.last=performance.now();
+  try{
+    const r=await S.human.detect($('#video'));
+    const f=r?.face?.[0];
+    if(!f){
+      ring(0);
+      return instruction(
+        S.mode==='ENROLL'?(S.pending?.employee?.fullName||'Ходим'):(S.mode==='IN'?'КЕЛДИ':'КЕТДИ'),
+        'Юзингизни рамка ичида ушланг'
+      );
+    }
+    if(S.mode==='ENROLL')await enroll(f);else await attendance(f);
+  }catch(e){console.error(e)}
+}
+
+async function session(mode){
+  if(S.running||S.busy)return;
+  if(mode==='ENROLL'&&!S.pending)return toast('Рўйхатга олиш вазифаси йўқ');
+  S.mode=mode;S.hit=null;S.hits=0;
+  show('cameraView');
+  document.querySelector('.camera-card').classList.toggle('enroll-mode',mode==='ENROLL');
+  $('#faceScanner').className='face-scanner '+(mode==='ENROLL'?'enrolling':'recognizing');
+  $('#enrollCounter').classList.toggle('hidden',mode!=='ENROLL');
+  $('#modeBadge').textContent=mode==='IN'?'КЕЛДИ':mode==='OUT'?'КЕТДИ':'ЮЗНИ РЎЙХАТГА ОЛИШ';
+  $('#enrollCounter').textContent=`0 / ${S.samples}`;
+  instruction(
+    mode==='ENROLL'?S.pending.employee.fullName:(mode==='IN'?'КЕЛДИ':'КЕТДИ'),
+    mode==='ENROLL'?'Бошингизни секин айлантиринг':'Камера тайёрланмоқда…'
+  );
+  ring(0);
+  try{
+    await Promise.all([startCamera(),initHuman()]);
+    S.running=true;
+    loop();
+  }catch(e){
+    idle();
+    toast('Камера очилмади: '+friendly(e));
+  }
+}
+
+function service(){
+  const q=qload().length;
+  $('#modalContent').innerHTML=
+    `<h2>Сервис</h2><div class="service-grid">
+      <div class="service-stat"><span>Версия</span><b>${VERSION}</b></div>
+      <div class="service-stat"><span>Юзли ходимлар</span><b>${S.employees.size}</b></div>
+      <div class="service-stat"><span>Офлайн навбат</span><b>${q}</b></div>
+      <div class="service-stat"><span>Камера</span><b>${S.stream?'ЁҚИЛГАН':'ЎЧИҚ'}</b></div>
+    </div><button id="reload" class="secondary-btn">Базани янгилаш</button>`;
+  $('#modal').classList.remove('hidden');
+  $('#reload').onclick=()=>bootstrap().then(()=>toast('База янгиланди')).catch(e=>toast(friendly(e)));
+}
+
+async function boot(){
+  const lp=launchParams();
+  try{
+    importLaunchConfig();
+    S.cfg=loadCfg();
+    show('loadingView');
+
+    if(!validCfg(S.cfg)) throw new Error('CONFIG_REQUIRED');
+
+    if(lp.purpose==='enroll'){
+      if(!lp.enroll) throw new Error('ENROLLMENT_CODE_NOT_FOUND');
+      $('#loadingTitle').textContent='Рўйхатга олиш тайёрланмоқда…';
+      $('#loadingDetail').textContent='Ходим маълумоти олинмоқда';
+      await loadEnrollment(lp.enroll);
+      S.samples=6;
+      $('#loadingDetail').textContent='Камера тайёрланмоқда';
+      await session('ENROLL');
+      return;
+    }
+
+    $('#loadingTitle').textContent='DAVOMAT тайёрланмоқда…';
+    $('#loadingDetail').textContent='Ходимлар маълумоти олинмоқда';
+    await bootstrap();
+    show('idleView');
+    initHuman().catch(e=>console.warn('human preload',e));
+    syncQueue();
+    pending();
+    S.pollTimer=setInterval(()=>pending(),15000);
+  }catch(e){
+    console.error(e);
+    await stopCamera();
+    show('setupView');
+    $('#setupError').textContent='Терминал очилмади.';
+    $('#setupDetail').textContent=friendly(e);
+  }
+}
+
+function clock(){
+  const n=new Date();
+  $('#idleClock').textContent=ttime(n);
+  $('#idleDate').textContent=tdate(n);
+}
+
+ticks();
+clock();
+setInterval(clock,1000);
+net();
+
+window.addEventListener('online',()=>{net();syncQueue();bootstrap().catch(()=>{})});
+window.addEventListener('offline',net);
+
+$('#retrySetupBtn').onclick=()=>location.reload();
+$('#inBtn').onclick=()=>session('IN');
+$('#outBtn').onclick=()=>session('OUT');
+$('#startEnrollBtn').onclick=()=>session('ENROLL');
+$('#cancelCameraBtn').onclick=idle;
+$('#adminBtn').onclick=service;
+$('#modalClose').onclick=()=>$('#modal').classList.add('hidden');
+$('#modal').onclick=e=>{if(e.target===$('#modal'))$('#modal').classList.add('hidden')};
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js?v=1.1.0').catch(()=>{});
+}
+
 boot();
 })();
