@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 
-const VERSION = '1.3.2';
+const VERSION = '1.4.0';
 const CFG_KEY = 'davomat-terminal-config-v2';
 const MODES = { inBtn:'IN', outBtn:'OUT', startEnrollBtn:'ENROLL' };
 
@@ -23,8 +23,6 @@ function launcherMode(){
   return !p.handoff && p.purpose !== 'enroll' && !p.enroll;
 }
 
-// app.js is loaded after this file. In launcher mode it must never start
-// bootstrap/Face AI/network waiting. Treat launcher as a lightweight shell.
 window.__DAVOMAT_EMBEDDED__ = embedded() || launcherMode();
 window.__DAVOMAT_LAUNCHER_MODE__ = launcherMode();
 
@@ -75,8 +73,6 @@ function openDirect(mode){
     a.click();
     a.remove();
   } else {
-    // Already top-level: reuse the same tab. This avoids another popup and
-    // guarantees the camera page has a real user gesture/navigation context.
     location.assign(url);
   }
 }
@@ -141,9 +137,6 @@ function autoStartTopLevel(){
   const mode = p.handoff;
   if (!['IN','OUT','ENROLL'].includes(mode)) return;
 
-  // Keep handoff available until app.js has actually started the requested
-  // session. Do not erase it before boot(), otherwise the app can fall back
-  // to the normal idle/bootstrap route and appear frozen.
   const id = mode === 'IN' ? 'inBtn' : mode === 'OUT' ? 'outBtn' : 'startEnrollBtn';
   let attempts = 0;
   const timer = setInterval(() => {
