@@ -1,6 +1,6 @@
 # DAVOMAT — PROJECT STATE
 
-Версия: v1.4.0
+Версия: v1.4.0 + hotfix1
 Дата: 2026-09-17
 
 ## Зафиксированная архитектура
@@ -16,43 +16,55 @@
 - Writes: `fetch(..., mode=no-cors, Content-Type=text/plain)` → Apps Script `doPost` → polling `requestStatus` через JSONP.
 - Ни iframe bridge, ни `window.opener`, ни ручной ввод URL/device/token не используются.
 
-## v1.4.0 — реально внедрено в GitHub main
-1. Все frontend build IDs синхронизированы на `1.4.0`: `index.html`, `app.js`, `top-level-fix.js`, `sw.js`.
-2. Service Worker больше не ждёт сеть перед выдачей app shell. Для same-origin shell используется stale-while-revalidate, а navigation получает cached `index.html` немедленно и обновляется в фоне.
-3. Precache содержит точные versioned URL: `styles.css?v=1.4.0`, `app.js?v=1.4.0`, `top-level-fix.js?v=1.4.0`.
-4. Постоянный cache Human/model сохранён отдельно и не удаляется при обновлении shell.
-5. Включён Navigation Preload там, где браузер его поддерживает.
-6. IndexedDB connection переиспользуется в рамках страницы вместо повторного `indexedDB.open()`/close на каждый cache read/write.
-7. Bootstrap cache TTL увеличен до 7 суток; после быстрого локального старта серверная база обновляется в фоне.
-8. Human JS подгружается в idle; тяжёлые модели и камера не запускаются постоянно.
-9. Face detector rotation выключен для фиксированного терминала (`rotation:false`).
-10. Метрика камеры заканчивается после первого реально доступного video frame, а не только после `video.play()`.
-11. Контрольное фото: crop до 320 px, JPEG quality ~0.44, асинхронный `canvas.toBlob()`.
-12. После уверенного Face match камера выключается и сразу показывается `ҚАБУЛ ҚИЛИНДИ`; кодирование фото и серверное сохранение продолжаются после local ACK.
-13. В сервисной диагностике добавлены `Local ACK`, `Фото ms / KB` и количество status polls.
-14. Backoff `requestStatus` изменён на 120/180/280/450/700/1000/1500 ms + небольшой jitter.
+## v1.4.0 — внедрено
+1. Frontend приведён к build `1.4.0`.
+2. Service Worker переведён на stale-while-revalidate для app shell.
+3. IndexedDB connection переиспользуется.
+4. Bootstrap cache TTL — 7 суток.
+5. Human JS подгружается в idle.
+6. Face detector rotation выключен для фиксированного терминала.
+7. Камера измеряется до первого реального video frame.
+8. Фото: crop до 320 px, JPEG ~0.44, async `toBlob()`.
+9. После Face match камера выключается сразу и показывается `ҚАБУЛ ҚИЛИНДИ` до завершения серверной обработки.
+10. Диагностика: `Local ACK`, `Фото ms / KB`, `Polls`.
 
-## Коммиты релиза
-- `db30197181a65a59a8d32535baa72e31e2de0a92` — новый Service Worker.
-- `4210c42edaf8b521489c28210ec712325f81e1e7` — index/build sync.
-- `0e1830dc230575136d6b9485c6ae56216548f6bf` — launcher/build sync.
-- `96423a5488dcce2787efb2d525710348de134ae6` — app.js v1.4.0 optimizations.
+## HOTFIX1 — по видео пользователя от 2026-09-17
+На видео обнаружен реальный UI race/launcher loop:
+- top-level терминал открывался с `?handoff=IN`;
+- после автозапуска `handoff` удалялся через 600 ms;
+- старый `top-level-fix.js` динамически пересчитывал `launcherMode()`;
+- после удаления `handoff` top-level страница ошибочно снова становилась launcher;
+- 500-ms `forceLauncher()` скрывал `cameraView/resultView` и возвращал `idleView`;
+- пользователь видел цикл: меню → камера/чёрный экран → меню → камера.
+
+Исправление:
+1. Launcher теперь определяется один раз при загрузке и только для реального iframe.
+2. Top-level GitHub page больше никогда не превращается обратно в launcher после удаления `handoff`.
+3. `forceLauncher()` работает только в статическом embedded launcher mode.
+4. Top-level `КЕЛДИ/КЕТДИ` остаётся живой страницей и не подвергается 500-ms принудительному возврату в idle.
+5. Добавлена защита от повторного запуска `autoStartTopLevel()`.
+6. Для гарантированного получения нового JS изменён asset URL на `top-level-fix.js?v=1.4.0-hotfix1`.
+7. Service Worker shell cache обновлён до `davomat-shell-v1.4.0-hotfix1`.
+
+## Коммиты HOTFIX1
+- `78b5d12e63370ceef7b35f21b978420ba9529015` — исправлен top-level launcher loop.
+- `3b40205faf93459ccefe8e218955544c3c912896` — cache-bust нового launcher JS.
+- `71a3cb182077ad7c7654b9c2c3efa9c8defd8631` — новый shell cache.
 
 ## Проверки
-- Локальный `node --check` для опубликованного `app.js` — PASS.
-- Git blob SHA локально проверенного `app.js`: `f4e0c63c94244d2e16cff81da3702db7480fc76c`.
-- GitHub `content_sha` опубликованного `app.js`: `f4e0c63c94244d2e16cff81da3702db7480fc76c` — точное совпадение.
-- GitHub Pages workflow run `35184932016` — `completed / success`.
+- GitHub Pages workflow run `35187813196` — `completed / success`.
+- HOTFIX1 опубликован в `main` и задеплоен GitHub Pages.
 
 ## Что ещё не считается внедрённым
-Backend Apps Script performance patch из глубокого исследования пока не подтверждён как опубликованный в production Apps Script. В текущей сессии доступен live GitHub, но нет операции редактирования/деплоя container-bound Apps Script source через Apps Script API. Поэтому нельзя честно помечать `CacheService requestStatus`/удаление `PROCESSING` из `SYNC_LOG` как production-ready deployment без отдельного source/deploy доступа.
+Backend Apps Script performance patch из глубокого исследования пока не подтверждён как опубликованный в production Apps Script. Текущий доступ позволяет изменять GitHub, но не container-bound Apps Script source/deployment.
 
 ## Следующий контрольный тест
-1. Открыть DAVOMAT заново; в шапке должно быть `v1.4.0`.
-2. Первый запуск после релиза может обновить shell/model cache. Второй запуск — основной warm-kiosk тест.
-3. Проверить `КЕЛДИ`: Face match → камера OFF → `ҚАБУЛ ҚИЛИНДИ` без ожидания Drive/Sheets → затем `МУВАФФАҚИЯТЛИ`.
-4. Открыть ⚙ и записать: `База`, `Face AI`, `Камера`, `Local ACK`, `Фото`, `Сақлаш`, `Polls`.
-5. Проверить `КЕТДИ` и регистрацию нового лица.
+1. Полностью закрыть вкладку DAVOMAT и открыть терминал заново.
+2. Нажать `КЕЛДИ` один раз.
+3. Экран камеры должен остаться открытым стабильно — без возврата в меню каждые 0.5–1 секунду.
+4. После распознавания должен появиться `ҚАБУЛ ҚИЛИНДИ`, затем `МУВАФФАҚИЯТЛИ`.
+5. Повторить для `КЕТДИ`.
+6. Если камера открывается стабильно, следующий этап — замер именно server save time через ⚙.
 
 ## Rollback
-Если v1.4.0 даст функциональную регрессию, откатывать нужно всем набором frontend-файлов на один согласованный build ID. Нельзя оставлять смесь `index/app/sw` разных версий.
+При регрессии откатывать `top-level-fix.js`, `index.html` и `sw.js` одним комплектом. Нельзя оставлять старый launcher JS с новым cache key или наоборот.
