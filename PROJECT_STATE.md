@@ -1,6 +1,6 @@
 # DAVOMAT — PROJECT STATE
 
-Версия: v1.4.0 + hotfix1
+Версия: v1.4.0 + hotfix2
 Дата: 2026-09-17
 
 ## Зафиксированная архитектура
@@ -14,7 +14,6 @@
 - Камера запускается только на top-level `toxayusuf.github.io`, не внутри Apps Script iframe.
 - GET/reads: JSONP к Apps Script (`bootstrap`, `enrollment`, `pendingEnrollment`, `requestStatus`).
 - Writes: `fetch(..., mode=no-cors, Content-Type=text/plain)` → Apps Script `doPost` → polling `requestStatus` через JSONP.
-- Ни iframe bridge, ни `window.opener`, ни ручной ввод URL/device/token не используются.
 
 ## v1.4.0 — внедрено
 1. Frontend приведён к build `1.4.0`.
@@ -28,43 +27,58 @@
 9. После Face match камера выключается сразу и показывается `ҚАБУЛ ҚИЛИНДИ` до завершения серверной обработки.
 10. Диагностика: `Local ACK`, `Фото ms / KB`, `Polls`.
 
-## HOTFIX1 — по видео пользователя от 2026-09-17
-На видео обнаружен реальный UI race/launcher loop:
-- top-level терминал открывался с `?handoff=IN`;
-- после автозапуска `handoff` удалялся через 600 ms;
-- старый `top-level-fix.js` динамически пересчитывал `launcherMode()`;
-- после удаления `handoff` top-level страница ошибочно снова становилась launcher;
-- 500-ms `forceLauncher()` скрывал `cameraView/resultView` и возвращал `idleView`;
-- пользователь видел цикл: меню → камера/чёрный экран → меню → камера.
+## HOTFIX1 — launcher loop по видео пользователя
+Исправлен цикл top-level терминала: после удаления `handoff` страница больше не превращается обратно в launcher и не скрывает cameraView/resultView каждые 500 ms.
 
-Исправление:
-1. Launcher теперь определяется один раз при загрузке и только для реального iframe.
-2. Top-level GitHub page больше никогда не превращается обратно в launcher после удаления `handoff`.
-3. `forceLauncher()` работает только в статическом embedded launcher mode.
-4. Top-level `КЕЛДИ/КЕТДИ` остаётся живой страницей и не подвергается 500-ms принудительному возврату в idle.
-5. Добавлена защита от повторного запуска `autoStartTopLevel()`.
-6. Для гарантированного получения нового JS изменён asset URL на `top-level-fix.js?v=1.4.0-hotfix1`.
-7. Service Worker shell cache обновлён до `davomat-shell-v1.4.0-hotfix1`.
+Коммиты HOTFIX1:
+- `78b5d12e63370ceef7b35f21b978420ba9529015`
+- `3b40205faf93459ccefe8e218955544c3c912896`
+- `71a3cb182077ad7c7654b9c2c3efa9c8defd8631`
 
-## Коммиты HOTFIX1
-- `78b5d12e63370ceef7b35f21b978420ba9529015` — исправлен top-level launcher loop.
-- `3b40205faf93459ccefe8e218955544c3c912896` — cache-bust нового launcher JS.
-- `71a3cb182077ad7c7654b9c2c3efa9c8defd8631` — новый shell cache.
+Workflow `35187813196` — success.
 
-## Проверки
-- GitHub Pages workflow run `35187813196` — `completed / success`.
-- HOTFIX1 опубликован в `main` и задеплоен GitHub Pages.
+## HOTFIX2 — Face DB = 0 и бесконечный no-match scan
+По второму видео и сервисной диагностике обнаружено:
+- `Юзли ходимлар = 0`;
+- камера и Human работают, лицо детектируется, но распознавать не с чем;
+- активный сотрудник `EMP-20260916132254-213` имеет `FACE_STATUS=NOT_ENROLLED`;
+- старые 6 Face-профилей принадлежат другому, уже неактивному тестовому сотруднику и имеют `ACTIVE=FALSE`;
+- bootstrap поэтому корректно возвращает 0 активных employees/profiles.
+
+Дополнительный frontend defect:
+- после успешного enrollment `6/6` старый app.js показывал `ЮЗ ТАЙЁР`, но не очищал локальный `bootstrap-v3` и не загружал свежую Face DB;
+- открытый терминал мог продолжать работать с `S.profiles=[]` даже после успешной регистрации до ручной перезагрузки.
+
+Исправление HOTFIX2:
+1. Добавлен `face-db-fix.js`.
+2. Перед `КЕЛДИ/КЕТДИ` top-level терминал отдельно проверяет live bootstrap.
+3. Если активных face profiles = 0, attendance-камера не запускается бессмысленно; пользователь получает сообщение сначала зарегистрировать лицо.
+4. Если bootstrap ещё загружается, нажатие удерживается и автоматически продолжается после подтверждения непустой Face DB.
+5. После `ЮЗ ТАЙЁР` очищается IndexedDB `bootstrap-v3`, ставится marker обновления Face DB и терминал автоматически перезапускается с чистым attendance bootstrap.
+6. Service Worker cache обновлён до `davomat-shell-v1.4.0-hotfix2` и precache включает `face-db-fix.js?v=1.4.0-hotfix2`.
+7. Старые биометрические профили не переassign'ятся другому сотруднику.
+
+Коммиты HOTFIX2:
+- `5564f94dfab1bc4b7747c736f3d5e321b9f61418` — Face DB guard + post-enrollment refresh.
+- `3e615ba8dbfdbb0a136eb89a54d9125a5cb5ca51` — загрузка guard в index.html.
+- `cf58350faa1587677d557f0c67608d9312ac2c79` — shell cache hotfix2.
+
+GitHub Pages workflow `35188898154` — completed / success.
+
+## Восстановление регистрации активного сотрудника
+Создана свежая OPEN enrollment-сессия для `EMP-20260916132254-213`, device `terminal-01`, code `353300`, срок до `2026-09-17T11:39:56+05:00`. Терминал должен получить её через `pendingEnrollment` и показать баннер регистрации.
 
 ## Что ещё не считается внедрённым
-Backend Apps Script performance patch из глубокого исследования пока не подтверждён как опубликованный в production Apps Script. Текущий доступ позволяет изменять GitHub, но не container-bound Apps Script source/deployment.
+Backend Apps Script performance patch из глубокого исследования пока не подтверждён как опубликованный в production Apps Script. Текущий доступ позволяет изменять GitHub и Sheets, но не container-bound Apps Script source/deployment.
 
 ## Следующий контрольный тест
-1. Полностью закрыть вкладку DAVOMAT и открыть терминал заново.
-2. Нажать `КЕЛДИ` один раз.
-3. Экран камеры должен остаться открытым стабильно — без возврата в меню каждые 0.5–1 секунду.
-4. После распознавания должен появиться `ҚАБУЛ ҚИЛИНДИ`, затем `МУВАФФАҚИЯТЛИ`.
-5. Повторить для `КЕТДИ`.
-6. Если камера открывается стабильно, следующий этап — замер именно server save time через ⚙.
+1. Полностью закрыть старые вкладки DAVOMAT и открыть терминал заново.
+2. На главном экране должна появиться задача регистрации активного сотрудника.
+3. Нажать `РЎЙХАТГА ОЛИШ` и довести до `6/6` → `ЮЗ ТАЙЁР`.
+4. Терминал должен автоматически обновить Face DB и вернуться к attendance.
+5. В ⚙ должно стать `Юзли ходимлар: 1` (или больше при дальнейших регистрациях).
+6. После этого проверить `КЕЛДИ`: только теперь Face ID должен сопоставлять лицо с профилем.
+7. После успешного события проверить `Local ACK`, `Фото`, `Сақлаш`, `Polls`.
 
 ## Rollback
-При регрессии откатывать `top-level-fix.js`, `index.html` и `sw.js` одним комплектом. Нельзя оставлять старый launcher JS с новым cache key или наоборот.
+При регрессии HOTFIX2 откатывать `face-db-fix.js`, `index.html` и `sw.js` одним комплектом. HOTFIX1 launcher fix не откатывать без отдельной причины.
