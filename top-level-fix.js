@@ -18,13 +18,14 @@ function params(){
   };
 }
 
-function launcherMode(){
-  const p = params();
-  return !p.handoff && p.purpose !== 'enroll' && !p.enroll;
-}
+const IS_EMBEDDED = embedded();
+const INITIAL_PARAMS = params();
+const IS_LIGHTWEIGHT_LAUNCHER = IS_EMBEDDED && !INITIAL_PARAMS.handoff && INITIAL_PARAMS.purpose !== 'enroll' && !INITIAL_PARAMS.enroll;
 
-window.__DAVOMAT_EMBEDDED__ = embedded() || launcherMode();
-window.__DAVOMAT_LAUNCHER_MODE__ = launcherMode();
+// Critical rule: only a real iframe is a launcher. A top-level GitHub terminal
+// must remain a live terminal even after ?handoff=... is removed from the URL.
+window.__DAVOMAT_EMBEDDED__ = IS_EMBEDDED;
+window.__DAVOMAT_LAUNCHER_MODE__ = IS_LIGHTWEIGHT_LAUNCHER;
 
 function updateVersion(){
   document.querySelectorAll('.brand span').forEach(el => {
@@ -63,18 +64,14 @@ function buildDirectUrl(mode){
 
 function openDirect(mode){
   const url = buildDirectUrl(mode);
-  if (embedded()) {
-    const a = document.createElement('a');
-    a.href = url;
-    a.target = '_blank';
-    a.rel = 'noopener';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } else {
-    location.assign(url);
-  }
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 function clockText(){
@@ -88,7 +85,7 @@ function clockText(){
 }
 
 function forceLauncher(){
-  if (!launcherMode()) return;
+  if (!IS_LIGHTWEIGHT_LAUNCHER) return;
 
   ['loadingView','setupView','cameraView','resultView'].forEach(id => {
     const el = document.getElementById(id);
@@ -111,7 +108,7 @@ function forceLauncher(){
 }
 
 function interceptLauncherActions(ev){
-  if (!launcherMode()) return;
+  if (!IS_LIGHTWEIGHT_LAUNCHER) return;
   const target = ev.target && ev.target.closest ? ev.target.closest('button') : null;
   if (!target) return;
   const mode = MODES[target.id];
@@ -132,11 +129,12 @@ function cleanHandoffParam(){
 }
 
 function autoStartTopLevel(){
-  if (embedded()) return;
+  if (IS_EMBEDDED || window.__DAVOMAT_AUTOSTART_ACTIVE__) return;
   const p = params();
   const mode = p.handoff;
   if (!['IN','OUT','ENROLL'].includes(mode)) return;
 
+  window.__DAVOMAT_AUTOSTART_ACTIVE__ = true;
   const id = mode === 'IN' ? 'inBtn' : mode === 'OUT' ? 'outBtn' : 'startEnrollBtn';
   let attempts = 0;
   const timer = setInterval(() => {
@@ -150,7 +148,10 @@ function autoStartTopLevel(){
       setTimeout(cleanHandoffParam, 600);
       return;
     }
-    if (attempts > 300) clearInterval(timer);
+    if (attempts > 300) {
+      clearInterval(timer);
+      window.__DAVOMAT_AUTOSTART_ACTIVE__ = false;
+    }
   }, 100);
 }
 
@@ -161,7 +162,7 @@ function ready(){
   forceLauncher();
   autoStartTopLevel();
 
-  if (!window.__DAVOMAT_LAUNCH_CLOCK__) {
+  if (IS_LIGHTWEIGHT_LAUNCHER && !window.__DAVOMAT_LAUNCH_CLOCK__) {
     window.__DAVOMAT_LAUNCH_CLOCK__ = setInterval(() => {
       forceLauncher();
       updateVersion();
