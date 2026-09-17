@@ -1,4 +1,4 @@
-const VERSION='1.4.0';
+const VERSION='1.4.0-hotfix1';
 const SHELL_CACHE=`davomat-shell-v${VERSION}`;
 const MODEL_CACHE='davomat-model-runtime-v1';
 const SHELL=[
@@ -6,7 +6,7 @@ const SHELL=[
   './index.html',
   './styles.css?v=1.4.0',
   './app.js?v=1.4.0',
-  './top-level-fix.js?v=1.4.0',
+  './top-level-fix.js?v=1.4.0-hotfix1',
   './manifest.webmanifest',
   './icon.svg'
 ];
