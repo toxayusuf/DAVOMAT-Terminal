@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="uz-Cyrl">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <title>DAVOMAT</title>
+  <style>
+:root{--bg:#f4f7fb;--panel:#fff;--ink:#172033;--muted:#778199;--line:#e5eaf2;--primary:#2458d6;--primary2:#1748bd;--good:#0e9f6e;--warn:#d97706;--bad:#dc2626;--shadow:0 10px 30px rgba(28,45,80,.08)}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}button,input,select{font:inherit}.hidden{display:none!important}.login-wrap{min-height:100vh;display:grid;place-items:center;background:radial-gradient(circle at 20% 10%,#dce7ff,transparent 36%),linear-gradient(145deg,#eef3ff,#f8fafc)}.login-card{width:min(92vw,390px);background:#fff;padding:34px;border-radius:24px;box-shadow:var(--shadow);text-align:center}.brand-mark{width:60px;height:60px;border-radius:18px;display:grid;place-items:center;margin:0 auto 14px;background:linear-gradient(145deg,#2b64e8,#173ea6);color:#fff;font-weight:900;font-size:30px}.brand-mark.small{width:38px;height:38px;border-radius:12px;font-size:20px;margin:0}.login-card h1{margin:8px 0 2px}.login-card p{color:var(--muted);margin:0 0 24px}.login-card label,.panel label{display:block;text-align:left;font-size:13px;color:var(--muted);margin:12px 0 6px}.login-card input,.panel input,.panel select,.filters input,.filters select{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fff;color:var(--ink);outline:none}.login-card input:focus,.panel input:focus,.panel select:focus{border-color:#8aa7ef;box-shadow:0 0 0 3px #e7eeff}.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700}.btn:hover{background:#f7f9fc}.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}.btn.primary:hover{background:var(--primary2)}.btn.danger{border-color:#f4b8b8;color:#b42318;background:#fff6f6}.btn.danger:hover{background:#fde8e8}.btn.ghost{background:transparent}.btn.wide{width:100%;margin-top:16px}.error{color:var(--bad);min-height:20px;margin-top:10px;font-size:13px}.app{min-height:100vh;display:grid;grid-template-columns:240px 1fr}.sidebar{position:sticky;top:0;height:100vh;background:#111a2d;color:#fff;padding:18px;display:flex;flex-direction:column;gap:18px}.brand{display:flex;align-items:center;gap:10px;padding:4px 6px 16px;border-bottom:1px solid rgba(255,255,255,.1)}.brand div{display:flex;flex-direction:column}.brand small{color:#92a0bd}.sidebar nav{display:grid;gap:7px}.sidebar nav button{border:0;text-align:left;padding:11px 12px;border-radius:10px;background:transparent;color:#cfd7e8;cursor:pointer;font-weight:700}.sidebar nav button.active,.sidebar nav button:hover{background:#22304c;color:#fff}.sidebar>.btn{margin-top:auto;color:#dbe4f7;border-color:#33405b}.content{padding:26px;min-width:0}.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.topbar h2{margin:0 0 4px;font-size:28px}.topbar p{margin:0;color:var(--muted)}.page{display:none}.page.active{display:block}.stats-grid{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:14px;margin-bottom:18px}.stat{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:17px;box-shadow:0 4px 16px rgba(30,45,70,.04)}.stat span{display:block;color:var(--muted);font-size:13px}.stat b{font-size:28px;display:block;margin-top:6px}.stat.good b{color:var(--good)}.stat.warn b{color:var(--warn)}.stat.bad b{color:var(--bad)}.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:0 4px 16px rgba(30,45,70,.04)}.panel h3{margin:0 0 14px}.panel-head{display:flex;justify-content:space-between;align-items:center}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:12px 10px;text-align:left;border-bottom:1px solid var(--line);font-size:13px;white-space:nowrap}th{color:var(--muted);font-weight:700;background:#fbfcfe}tr:last-child td{border-bottom:0}.pill{display:inline-flex;padding:5px 8px;border-radius:999px;font-size:12px;font-weight:800;background:#eef2f7;color:#58647a}.pill.good{background:#def7ec;color:#057a55}.pill.warn{background:#fdf6b2;color:#8e4b10}.pill.bad{background:#fde8e8;color:#c81e1e}.actions,.filters{display:flex;gap:10px;align-items:end;margin-bottom:14px;flex-wrap:wrap}.filters label{font-size:12px;color:var(--muted);min-width:150px}.filters input{margin-top:5px}.empty{padding:14px;color:var(--muted);text-align:center}.alert-item{padding:12px;border:1px solid #fde6c1;background:#fffaf1;border-radius:12px;margin:8px 0}.cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.schedule-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:17px}.schedule-card h3{margin:0 0 12px}.schedule-days{display:grid;grid-template-columns:1fr auto;gap:7px;font-size:13px}.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:14px}.hint{font-size:12px;color:var(--muted);line-height:1.45}.modal{position:fixed;inset:0;background:rgba(10,18,35,.55);display:grid;place-items:center;padding:20px;z-index:20}.modal-card{position:relative;width:min(96vw,600px);max-height:90vh;overflow:auto;background:#fff;border-radius:20px;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.25)}.modal-x{position:absolute;right:14px;top:10px;border:0;background:transparent;font-size:30px;cursor:pointer;color:#67738b}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-grid label{font-size:13px;color:var(--muted)}.form-grid input,.form-grid select{width:100%;margin-top:5px;border:1px solid var(--line);border-radius:11px;padding:10px}.span2{grid-column:1/-1}.code-box{text-align:center;font-size:42px;letter-spacing:8px;font-weight:900;background:#f0f5ff;color:#1e4fbf;border-radius:16px;padding:18px;margin:18px 0}.toast{position:fixed;right:24px;bottom:24px;background:#172033;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:var(--shadow);z-index:30}.money{font-variant-numeric:tabular-nums;font-weight:800}.muted{color:var(--muted)}
+@media(max-width:1050px){.stats-grid{grid-template-columns:repeat(3,1fr)}.app{grid-template-columns:190px 1fr}.sidebar{padding:12px}.content{padding:18px}}
+@media(max-width:760px){.app{display:block}.sidebar{position:static;height:auto}.sidebar nav{display:flex;overflow:auto}.sidebar nav button{white-space:nowrap}.sidebar>.btn{display:none}.content{padding:14px}.stats-grid{grid-template-columns:repeat(2,1fr)}.settings-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.span2{grid-column:auto}.topbar h2{font-size:22px}}
+
+.live-grid{display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:16px}.terminal-card{display:flex;gap:14px;align-items:center}.terminal-dot{width:14px;height:14px;border-radius:50%;background:#9ca3af;box-shadow:0 0 0 5px #eef2f7}.terminal-dot.online{background:var(--good);box-shadow:0 0 0 5px #def7ec}.terminal-dot.offline{background:var(--bad);box-shadow:0 0 0 5px #fde8e8}.live-events{display:grid;gap:8px}.live-event{display:grid;grid-template-columns:76px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px}.live-time{font-size:18px;font-weight:900}.live-type{font-size:11px;font-weight:900;border-radius:999px;padding:5px 8px}.live-type.in{background:#def7ec;color:#057a55}.live-type.out{background:#e5edff;color:#3056b3}.enroll-wait{text-align:center;padding:16px 0}.enroll-face{width:96px;height:96px;border:4px solid #c7d7ff;border-top-color:var(--primary);border-radius:50%;margin:16px auto;animation:spin 1.2s linear infinite}.enroll-done{width:96px;height:96px;border-radius:50%;margin:16px auto;display:grid;place-items:center;background:#def7ec;color:#057a55;font-size:48px;font-weight:900}@keyframes spin{to{transform:rotate(360deg)}}@media(max-width:900px){.live-grid{grid-template-columns:1fr}}
+</style>
+
+</head>
+<body>
+  <div id="loginView" class="login-wrap">
+    <div class="login-card">
+      <div class="brand-mark">D</div>
+      <h1>DAVOMAT</h1>
+      <p>Омбор ходимлари давомати<br><small style="display:inline-block;margin-top:6px;color:#9aa4b8">v1.5.0 UI</small></p>
+      <div id="serverHealth" style="font-size:12px;color:#778199;margin:-12px 0 14px">Сервер текширилмоқда…</div>
+      <label>Админ PIN</label>
+      <input id="pinInput" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="••••••">
+      <button class="btn primary wide" id="loginBtn" type="button" >Кириш</button>
+      <div id="loginError" class="error"></div>
+    </div>
+  </div>
+
+  <div id="appView" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark small">D</span><div><strong>DAVOMAT</strong><small>v1.5.0 UI</small></div></div>
+      <nav id="nav">
+        <button data-page="dashboard" class="active">Бош саҳифа</button>
+        <button data-page="employees">Ходимлар</button>
+        <button data-page="attendance">Давомат</button>
+        <button data-page="schedules">Графиклар</button>
+        <button data-page="salary">Ойлик</button>
+        <button data-page="reports">Ҳисоботлар</button>
+        <button data-page="settings">Созламалар</button>
+        <button data-page="system">Тизим</button>
+      </nav>
+      <button class="btn ghost" id="logoutBtn">Чиқиш</button>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <div><h2 id="pageTitle">Бош саҳифа</h2><p id="todayLabel"></p></div>
+        <button class="btn ghost" id="refreshBtn">↻ Янгилаш</button>
+      </header>
+
+      <section id="page-dashboard" class="page active">
+        <div class="stats-grid">
+          <article class="stat"><span>Жами ходим</span><b id="sTotal">0</b></article>
+          <article class="stat good"><span>Келди</span><b id="sArrived">0</b></article>
+          <article class="stat warn"><span>Кечикди</span><b id="sLate">0</b></article>
+          <article class="stat bad"><span>Ишда йўқ</span><b id="sAbsent">0</b></article>
+          <article class="stat"><span>Ҳозир ишда</span><b id="sWorking">0</b></article>
+          <article class="stat warn"><span>Тасдиқлаш</span><b id="sReview">0</b></article>
+        </div>
+        <div class="live-grid">
+          <div class="panel" style="margin:0"><h3>Терминал</h3><div class="terminal-card"><span id="terminalDot" class="terminal-dot"></span><div><b id="terminalStatus">Текширилмоқда…</b><div id="terminalLastSeen" class="muted" style="margin-top:4px"></div></div></div></div>
+          <div class="panel" style="margin:0"><div class="panel-head"><h3>Охирги белгилар</h3><span class="muted">автоматик янгиланади</span></div><div id="recentEvents" class="live-events"><div class="empty">Ҳали белги йўқ</div></div></div>
+        </div>
+        <div class="panel"><div class="panel-head"><h3>Эътибор талаб қилади</h3></div><div id="alerts" class="empty">Муаммо йўқ</div></div>
+        <div class="panel"><div class="panel-head"><h3>Бугунги давомат</h3></div><div class="table-wrap"><table><thead><tr><th>Ходим</th><th>Келди</th><th>Кетди</th><th>Кечикиш</th><th>Иш вақти</th><th>Ҳолат</th></tr></thead><tbody id="dashboardAttendance"></tbody></table></div></div>
+      </section>
+
+      <section id="page-employees" class="page">
+        <div class="actions"><button class="btn primary" id="addEmployeeBtn">+ Ходим қўшиш</button></div>
+        <div class="panel"><div class="table-wrap"><table><thead><tr><th>Ф.И.Ш.</th><th>Лавозими</th><th>Ойлик</th><th>График</th><th>Бугун</th><th>Юз</th><th></th></tr></thead><tbody id="employeesBody"></tbody></table></div></div>
+      </section>
+
+      <section id="page-attendance" class="page">
+        <div class="filters"><label>Сана <input type="date" id="attendanceDate"></label><button class="btn" id="loadAttendanceBtn">Кўрсатиш</button></div>
+        <div class="panel"><div class="table-wrap"><table><thead><tr><th>Ходим</th><th>Келди</th><th>Кетди</th><th>Соат</th><th>Кеч</th><th>Эрта</th><th>Ортиқча</th><th>Ҳолат</th><th></th></tr></thead><tbody id="attendanceBody"></tbody></table></div></div>
+      </section>
+
+      <section id="page-schedules" class="page">
+        <div class="actions"><button class="btn primary" id="addScheduleBtn">+ График қўшиш</button></div>
+        <div id="schedulesGrid" class="cards-grid"></div>
+      </section>
+
+      <section id="page-salary" class="page">
+        <div class="filters"><label>Ой <input type="month" id="salaryMonth"></label><button class="btn" id="loadSalaryBtn">Ҳисоблаш</button></div>
+        <div class="panel"><div class="table-wrap"><table><thead><tr><th>Ходим</th><th>Оклад</th><th>Иш куни</th><th>Келган</th><th>Йўқ</th><th>Ишлаган</th><th>Кечикиш</th><th>Ортиқча</th><th>Ушланди</th><th>Тўланади</th><th>Ҳолат</th></tr></thead><tbody id="salaryBody"></tbody></table></div></div>
+      </section>
+
+      <section id="page-reports" class="page">
+        <div class="filters"><label>Дан <input type="date" id="reportFrom"></label><label>Гача <input type="date" id="reportTo"></label><button class="btn" id="loadReportBtn">Кўрсатиш</button><button class="btn primary" id="excelBtn">Excel файл</button></div>
+        <div class="panel"><div class="table-wrap"><table><thead><tr><th>Сана</th><th>Ходим</th><th>Келди</th><th>Кетди</th><th>Ишлаган</th><th>Кеч</th><th>Эрта</th><th>Ортиқча</th><th>Ҳолат</th></tr></thead><tbody id="reportBody"></tbody></table></div></div>
+      </section>
+
+      <section id="page-settings" class="page">
+        <div class="settings-grid">
+          <div class="panel"><h3>Юз терминали</h3><label>Веб терминал HTTPS манзили<input id="cfgTerminalUrl" placeholder="https://..."></label><div class="actions" style="margin:8px 0 0"><button class="btn" id="openTerminalBtn">Терминални очиш</button><button class="btn primary" id="pairTerminalBtn">Телефон/планшетни улаш</button></div><label>Қурилма ID<input id="cfgDeviceId" disabled></label><div class="hint" id="cfgDeviceSecretStatus" style="margin:10px 0">Токен ҳолати текширилмоқда…</div><div class="actions" style="margin:8px 0"><button class="btn" id="regenTokenBtn">Токенни алмаштириш</button><button class="btn" id="toggleDeviceBtn">Терминални ўчириш</button></div><p class="hint">Телефон/планшетда шу HTTPS манзил очилади. Камера фақат КЕЛДИ/КЕТДИ босилганда ёқилади.</p></div>
+          <div class="panel"><h3>Юз аниқлаш чегаралари</h3><label>Ўхшашлик<input id="cfgMatch" type="number" min="0" max="1" step="0.01"></label><label>Тириклик<input id="cfgLive" type="number" min="0" max="1" step="0.01"></label><label>Сохталикдан ҳимоя<input id="cfgReal" type="number" min="0" max="1" step="0.01"></label><p class="hint">v0.6 да ходим моргаши шарт эмас: passive liveness ва anti-spoof автоматик текширилади.</p><label>Фото сақлаш (кун)<input id="cfgRetention" type="number" min="1"></label><label>Критик кечикиш (дақ.)<input id="cfgLateAlert" type="number" min="1"></label></div>
+          <div class="panel"><h3>Telegram</h3><label>Бот токени<input id="cfgTelegramToken" type="password" placeholder="ўзгармаса бўш қолдиринг"></label><label>Chat ID<input id="cfgTelegramChat"></label></div>
+          <div class="panel"><h3>Админ PIN</h3><label>Эски PIN<input id="oldPin" type="password" inputmode="numeric"></label><label>Янги PIN<input id="newPin" type="password" inputmode="numeric"></label><button class="btn" id="changePinBtn">PIN алмаштириш</button></div>
+        </div>
+        <button class="btn primary" id="saveSettingsBtn">Созламаларни сақлаш</button>
+      </section>
+
+      <section id="page-system" class="page">
+        <div class="actions"><button class="btn" id="loadSystemBtn">↻ Тизим ҳолатини янгилаш</button></div>
+        <div class="panel"><h3>Қурилмалар</h3><div id="systemDevices" class="empty">Юкланмаган</div></div>
+        <div class="panel"><h3>Охирги синхронизация хатолари</h3><div class="table-wrap"><table><thead><tr><th>Вақт</th><th>Амал</th><th>Ҳолат</th><th>Хабар</th></tr></thead><tbody id="systemSync"></tbody></table></div></div>
+        <div class="panel"><h3>Админ аудит</h3><div class="table-wrap"><table><thead><tr><th>Вақт</th><th>Амал</th><th>Объект</th><th>Натижа</th></tr></thead><tbody id="systemAudit"></tbody></table></div></div>
+        <div class="panel"><h3>Telegram журнал</h3><div class="table-wrap"><table><thead><tr><th>Вақт</th><th>Ҳолат</th><th>Хабар</th></tr></thead><tbody id="systemTelegram"></tbody></table></div></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal hidden"><div class="modal-card"><button class="modal-x" id="modalClose">×</button><div id="modalContent"></div></div></div>
+  <div id="toast" class="toast hidden"></div>
+<script>
+(function () {
+  'use strict';
+  var UI_VERSION = '1.5.0';
+  var SESSION_KEY='davomat-admin-session-v1';
+  var state = { token: '', bootstrap: null, employees: [], schedules: [], devices: [], enrollTimer: null, terminalSettings: null };
+  function q(sel, root) { return (root || document).querySelector(sel); }
+  function qa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function text(id, value) { var el=q(id); if(el) el.textContent=value == null ? '' : String(value); }
+  function html(id, value) { var el=q(id); if(el) el.innerHTML=value == null ? '' : String(value); }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>'\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c];}); }
+  function money(v){ try{return new Intl.NumberFormat('ru-RU').format(Number(v||0))+' сўм';}catch(e){return String(v||0)+' сўм';} }
+  function mins(v){ v=Number(v||0); return Math.floor(v/60)+':'+String(v%60).padStart(2,'0'); }
+  function nowDate(){ var d=new Date(), p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tashkent',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d),o={}; for(var i=0;i<p.length;i++){if(p[i].type!=='literal')o[p[i].type]=p[i].value;} return o.year+'-'+o.month+'-'+o.day; }
+  function nowMonth(){ return nowDate().slice(0,7); }
+  function localTime(v){ if(!v)return '—'; var d=new Date(v); if(isNaN(d.getTime()))return esc(v); try{return d.toLocaleTimeString('ru-RU',{timeZone:'Asia/Tashkent',hour:'2-digit',minute:'2-digit'});}catch(e){return d.toLocaleTimeString();} }
+  function pill(s){ var m={COMPLETE:['Якунланган','good'],OPEN:['Ишда','good'],REVIEW:['Тасдиқлаш керак','warn'],ABSENT:['Ишда йўқ','bad'],PENDING:['Кутилмоқда',''],NON_WORKDAY:['Дам олиш','']},x=m[s]||[s||'—',''];return '<span class="pill '+x[1]+'">'+esc(x[0])+'</span>'; }
+  function toast(msg){ var el=q('#toast'); if(!el)return; el.textContent=msg; el.classList.remove('hidden'); clearTimeout(toast.t); toast.t=setTimeout(function(){el.classList.add('hidden');},2600); }
+  function setHealth(msg,color){ var el=q('#serverHealth'); if(!el)return; el.textContent=msg; el.style.color=color||'#778199'; }
+  function setLoginError(msg){ text('#loginError',msg||''); }
+  function fatal(msg){ setHealth('Интерфейс хатоси','#dc2626'); setLoginError(msg); }
+
+  function clearSession(){
+    state.token='';
+    try{sessionStorage.removeItem(SESSION_KEY);}catch(e){}
+  }
+  function saveSession(token){
+    state.token=String(token||'');
+    try{if(state.token)sessionStorage.setItem(SESSION_KEY,state.token);else sessionStorage.removeItem(SESSION_KEY);}catch(e){}
+  }
+  function showLogin(msg){
+    clearSession();
+    q('#appView').classList.add('hidden');q('#loginView').classList.remove('hidden');
+    if(msg)setLoginError(msg);
+  }
+  function normalizeError(e){return String(e&&e.message?e.message:e||'SERVER_ERROR');}
+  function handleAuthError(e){
+    var m=normalizeError(e);
+    if(m.indexOf('ADMIN_SESSION_EXPIRED')>=0||m.indexOf('ADMIN_AUTH_REQUIRED')>=0){showLogin('Сессия тугади. PIN ни қайта киритинг.');return true;}
+    return false;
+  }
+
+  function gas(name,args,ok,fail,timeout){
+    var done=false;
+    var timer=setTimeout(function(){if(done)return;done=true;var e=new Error('TIMEOUT: '+name);if(!handleAuthError(e))(fail||function(){})(e);},timeout||20000);
+    try{
+      if(!window.google || !google.script || !google.script.run) throw new Error('GOOGLE_SCRIPT_RUN_UNAVAILABLE');
+      var runner=google.script.run
+        .withSuccessHandler(function(v){if(done)return;done=true;clearTimeout(timer);if(ok)ok(v);})
+        .withFailureHandler(function(raw){if(done)return;done=true;clearTimeout(timer);var e=new Error(raw&&raw.message?raw.message:String(raw));if(!handleAuthError(e)&&fail)fail(e);});
+      if(typeof runner[name]!=='function')throw new Error('SERVER_METHOD_NOT_FOUND: '+name);
+      runner[name].apply(runner,args||[]);
+    }catch(e){if(done)return;done=true;clearTimeout(timer);if(!handleAuthError(e)&&fail)fail(e);}
+  }
+
+  window.onerror=function(msg,src,line,col,err){ fatal('JS: '+String(msg)+' · '+String(line||'')+':'+String(col||'')); return false; };
+  setHealth('Интерфейс ишлаяпти · PIN киритинг','#0e9f6e');
+
+  function login(){
+    var pin=(q('#pinInput').value||'').trim(), btn=q('#loginBtn');
+    setLoginError('');
+    if(!/^\d{4,10}$/.test(pin)){setLoginError('PIN 4–10 та рақамдан иборат бўлиши керак.');return;}
+    btn.disabled=true; btn.textContent='Текширилмоқда…'; setHealth('PIN текширилмоқда…','#778199');
+    gas('adminLogin',[pin],function(r){
+      if(!r||!r.ok){btn.disabled=false;btn.textContent='Кириш';setHealth('Сервер уланган','#0e9f6e');setLoginError(r&&r.error==='PIN_NOT_VALID'?'PIN нотўғри.':'Кириш хатоси: '+String(r&&r.error||'номаълум'));return;}
+      saveSession(r.token); setHealth('PIN қабул қилинди · маълумотлар юкланмоқда…','#0e9f6e');
+      loadCore(function(){
+        btn.disabled=false;btn.textContent='Кириш'; q('#loginView').classList.add('hidden');q('#appView').classList.remove('hidden');
+        setHealth('Сервер: уланган · backend '+String(r.version||'?')+' · UI '+UI_VERSION,'#0e9f6e');
+      },function(e){btn.disabled=false;btn.textContent='Кириш';setLoginError('Маълумот юкланмади: '+e.message);setHealth('PIN қабул қилинди, лекин backend хатоси','#dc2626');});
+    },function(e){btn.disabled=false;btn.textContent='Кириш';setLoginError('Сервер хатоси: '+e.message);setHealth('Apps Script сервер хатоси','#dc2626');},20000);
+  }
+
+  function loadCore(ok,fail){
+    gas('getAdminAppData',[state.token],function(r){
+      if(!r||r.ok===false){(fail||function(){})(new Error(r&&r.error?r.error:'ADMIN_DATA_ERROR'));return;}
+      state.bootstrap=r.bootstrap||{};
+      state.employees=r.employees||[];
+      state.schedules=r.schedules||[];
+      state.terminalSettings=r.settings||{};
+      state.devices=r.devices||[];
+      renderAll();
+      if(ok)ok();
+    },fail,25000);
+  }
+  function refresh(){ loadCore(function(){toast('Янгиланди');},function(e){toast(e.message);}); }
+
+  function renderAll(){
+    renderDashboard();renderEmployees();renderSchedules();
+    var d=(state.bootstrap&&state.bootstrap.today)||nowDate();
+    q('#attendanceDate').value=d;q('#reportFrom').value=d;q('#reportTo').value=d;q('#salaryMonth').value=d.slice(0,7);text('#todayLabel',d);
+  }
+  function renderDashboard(){
+    var b=state.bootstrap||{},s=b.stats||{};
+    text('#sTotal',s.total||0);text('#sArrived',s.arrived||0);text('#sLate',s.late||0);text('#sAbsent',s.absent||0);text('#sWorking',s.working||0);text('#sReview',s.review||0);
+    var t=b.terminal||{};var dot=q('#terminalDot');if(dot)dot.className='terminal-dot '+(t.online?'online':'offline');text('#terminalStatus',t.online?'ОНЛАЙН · ТАЙЁР':'ОФЛАЙН');text('#terminalLastSeen',t.lastSeenAt?'Охирги алоқа: '+localTime(t.lastSeenAt):'Ҳали уланмаган');
+    var re=b.recentEvents||[],a=[];for(var i=0;i<re.length;i++){a.push('<div class="live-event"><div class="live-time">'+localTime(re[i].eventAt)+'</div><div><b>'+esc(re[i].fullName)+'</b><div class="muted">'+esc(re[i].position||'')+'</div></div><span class="live-type '+(re[i].eventType==='OUT'?'out':'in')+'">'+(re[i].eventType==='OUT'?'КЕТДИ':'КЕЛДИ')+'</span></div>');}html('#recentEvents',a.length?a.join(''):'<div class="empty">Ҳали белги йўқ</div>');
+    var al=b.alerts||[];a=[];for(i=0;i<al.length;i++)a.push('<div class="alert-item">⚠ '+esc(al[i].text)+'</div>');html('#alerts',a.length?a.join(''):'<div class="empty">Муаммо йўқ</div>');
+    var rows=b.attendance||[];a=[];for(i=0;i<rows.length;i++){var r=rows[i];a.push('<tr><td><b>'+esc(r.FULL_NAME)+'</b><br><span class="muted">'+esc(r.POSITION||'')+'</span></td><td>'+localTime(r.FIRST_IN)+'</td><td>'+localTime(r.LAST_OUT)+'</td><td>'+Number(r.LATE_MIN||0)+' дақ.</td><td>'+mins(r.WORKED_MIN)+'</td><td>'+pill(r.STATUS)+'</td></tr>');}html('#dashboardAttendance',a.length?a.join(''):'<tr><td colspan="6" class="empty">Ҳали маълумот йўқ</td></tr>');
+  }
+  function todayPill(id){var x=state.bootstrap&&state.bootstrap.todayStates?state.bootstrap.todayStates[String(id)]:null;if(!x)return '<span class="pill">Келмаган</span>';return pill(x.status);}
+  function enrollmentLaunchUrl(employeeId){
+    var s=state.terminalSettings||{}, base=String(s.WEB_APP_URL||'').trim();
+    if(!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/.test(base))return '';
+    return base+(base.indexOf('?')>=0?'&':'?')+'launchEnroll=1&employee='+encodeURIComponent(String(employeeId||''))+'&session='+encodeURIComponent(String(state.token||''));
+  }
+  function renderEmployees(){
+    var a=[],es=state.employees||[];
+    for(var i=0;i<es.length;i++){
+      var e=es[i],active=e.active!==false,launch=active?enrollmentLaunchUrl(e.employeeId):'';
+      var faceAction=launch
+        ? '<a class="btn" style="text-decoration:none;display:inline-flex;align-items:center" data-act="enroll" data-id="'+esc(e.employeeId)+'" data-name="'+esc(e.fullName)+'" href="'+esc(launch)+'" target="_blank">'+(e.faceStatus==='READY'?'Юзни янгилаш':'Юзни рўйхатга олиш')+'</a>'
+        : '<button class="btn" type="button" disabled>'+(!active?'Ходим ўчирилган':'Юзни рўйхатга олиш')+'</button>';
+      var status=active?'<span class="pill good">Фаол</span>':'<span class="pill bad">Ўчирилган</span>';
+      a.push('<tr><td><b>'+esc(e.fullName)+'</b><br>'+status+'</td><td>'+esc(e.position||'')+'</td><td class="money">'+money(e.monthlySalary)+'</td><td>'+esc(e.scheduleName||'')+'</td><td>'+(active?todayPill(e.employeeId):'—')+'</td><td>'+(e.faceStatus==='READY'?'<span class="pill good">Тайёр</span>':'<span class="pill warn">Рўйхатдан ўтмаган</span>')+'</td><td><div class="actions" style="margin:0">'+faceAction+'<button class="btn" data-act="edit" data-id="'+esc(e.employeeId)+'">Таҳрирлаш</button><button class="btn" data-act="resetface" data-id="'+esc(e.employeeId)+'">Face reset</button><button class="btn '+(active?'danger':'')+'" data-act="toggle" data-id="'+esc(e.employeeId)+'" data-active="'+(active?'1':'0')+'">'+(active?'Ўчириш':'Фаоллаштириш')+'</button></div></td></tr>');
+    }
+    html('#employeesBody',a.length?a.join(''):'<tr><td colspan="7" class="empty">Ходимлар йўқ</td></tr>');
+  }
+
+  function renderSchedules(){
+    var a=[],ss=state.schedules||[],days=['MON','TUE','WED','THU','FRI','SAT','SUN'],names={MON:'Душанба',TUE:'Сешанба',WED:'Чоршанба',THU:'Пайшанба',FRI:'Жума',SAT:'Шанба',SUN:'Якшанба'};
+    for(var i=0;i<ss.length;i++){var sc=ss[i],d=[];for(var j=0;j<days.length;j++){var k=days[j];d.push('<div>'+names[k]+'</div><div>'+(sc[k+'_START']&&sc[k+'_END']?esc(sc[k+'_START'])+' — '+esc(sc[k+'_END']):'ДАМ ОЛИШ')+'</div>');}a.push('<div class="schedule-card"><h3>'+esc(sc.NAME)+'</h3><div class="schedule-days">'+d.join('')+'<div>Тушлик</div><div>'+esc(sc.LUNCH_START||'—')+' — '+esc(sc.LUNCH_END||'—')+'</div><div>Кечикиш рухсати</div><div>'+esc(sc.GRACE_MINUTES||10)+' дақ.</div></div><button class="btn" data-sch="'+esc(sc.SCHEDULE_ID)+'" style="margin-top:14px">Таҳрирлаш</button></div>');}html('#schedulesGrid',a.join(''));
+  }
+  function scheduleById(id){for(var i=0;i<state.schedules.length;i++)if(String(state.schedules[i].SCHEDULE_ID)===String(id))return state.schedules[i];return null;}
+  function openSchedule(id){
+    var sc=id?scheduleById(id):null,days=['MON','TUE','WED','THU','FRI','SAT','SUN'],names={MON:'Душанба',TUE:'Сешанба',WED:'Чоршанба',THU:'Пайшанба',FRI:'Жума',SAT:'Шанба',SUN:'Якшанба'},parts=[];
+    for(var i=0;i<days.length;i++){var k=days[i];parts.push('<label>'+names[k]+' бошланиш<input type="time" data-st="'+k+'" value="'+esc(sc&&sc[k+'_START']||'')+'"></label><label>'+names[k]+' тугаш<input type="time" data-en="'+k+'" value="'+esc(sc&&sc[k+'_END']||'')+'"></label>');}
+    openModal('<h2>'+(sc?'Графикни таҳрирлаш':'Янги график')+'</h2><div class="form-grid"><label class="span2">Номи<input id="schName" value="'+esc(sc&&sc.NAME||'')+'"></label>'+parts.join('')+'<label>Тушлик бошланиш<input id="schLunchStart" type="time" value="'+esc(sc&&sc.LUNCH_START||'')+'"></label><label>Тушлик тугаш<input id="schLunchEnd" type="time" value="'+esc(sc&&sc.LUNCH_END||'')+'"></label><label>Кечикиш рухсати, дақ.<input id="schGrace" type="number" min="0" max="180" value="'+Number(sc&&sc.GRACE_MINUTES||10)+'"></label><button class="btn primary span2" id="schSave">Сақлаш</button></div><p class="hint">Дам олиш куни учун бошланиш ва тугашни бўш қолдиринг. Тунги смена учун, масалан, 20:00 → 05:00 киритиш мумкин.</p>');
+    q('#schSave').onclick=function(){var p={SCHEDULE_ID:sc?sc.SCHEDULE_ID:'',NAME:(q('#schName').value||'').trim(),LUNCH_START:q('#schLunchStart').value,LUNCH_END:q('#schLunchEnd').value,GRACE_MINUTES:Number(q('#schGrace').value||10)};for(var j=0;j<days.length;j++){var k=days[j];p[k+'_START']=q('[data-st="'+k+'"]').value;p[k+'_END']=q('[data-en="'+k+'"]').value;}if(!p.NAME)return toast('График номини киритинг');gas('saveSchedule',[state.token,p],function(){closeModal();loadCore(function(){switchPage('schedules');toast('График сақланди');});},function(e){toast(e.message);});};
+  }
+
+  function openModal(content){html('#modalContent',content);q('#modal').classList.remove('hidden');}
+  function closeModal(){if(state.enrollTimer){clearInterval(state.enrollTimer);state.enrollTimer=null;}q('#modal').classList.add('hidden');html('#modalContent','');}
+  function openAddEmployee(){
+    var opts=[];for(var i=0;i<state.schedules.length;i++)opts.push('<option value="'+esc(state.schedules[i].SCHEDULE_ID)+'">'+esc(state.schedules[i].NAME)+'</option>');
+    openModal('<h2>Ходим қўшиш</h2><div class="form-grid"><label class="span2">Ф.И.Ш.<input id="mFullName"></label><label>Лавозим<input id="mPosition"></label><label>Ойлик маош<input id="mSalary" type="number" min="0"></label><label>Иш бошлаш санаси<input id="mStartDate" type="date" value="'+nowDate()+'"></label><label>График<select id="mSchedule">'+opts.join('')+'</select></label><button class="btn primary span2" id="mSaveEmployee">Сақлаш</button></div><p class="hint" style="margin-top:12px">Сақлангандан кейин ходим рўйхатда пайдо бўлади. Юзни рўйхатга олиш учун унинг қаторидаги битта тугмани босасиз.</p>');
+    q('#mSaveEmployee').onclick=function(){
+      var btn=q('#mSaveEmployee'),p={fullName:(q('#mFullName').value||'').trim(),position:(q('#mPosition').value||'').trim(),monthlySalary:Number(q('#mSalary').value||0),scheduleId:q('#mSchedule').value,startDate:q('#mStartDate').value};
+      if(!p.fullName){toast('Ф.И.Ш. киритинг');return;}
+      btn.disabled=true;btn.textContent='Сақланмоқда…';
+      gas('createEmployee',[state.token,p],function(){
+        closeModal();
+        loadCore(function(){switchPage('employees');toast('Ходим сақланди · энди «Юзни рўйхатга олиш» ни босинг');},function(err){toast(err.message);});
+      },function(err){btn.disabled=false;btn.textContent='Сақлаш';toast(err.message);});
+    };
+  }
+  function employeeById(id){for(var i=0;i<state.employees.length;i++)if(String(state.employees[i].employeeId)===String(id))return state.employees[i];return null;}
+  function openEditEmployee(id){
+    var e=employeeById(id);if(!e)return toast('Ходим топилмади');
+    var opts=[];for(var i=0;i<state.schedules.length;i++){var sc=state.schedules[i];opts.push('<option value="'+esc(sc.SCHEDULE_ID)+'" '+(String(sc.SCHEDULE_ID)===String(e.scheduleId)?'selected':'')+'>'+esc(sc.NAME)+'</option>');}
+    openModal('<h2>Ходимни таҳрирлаш</h2><div class="form-grid"><label class="span2">Ф.И.Ш.<input id="eFullName" value="'+esc(e.fullName)+'"></label><label>Лавозим<input id="ePosition" value="'+esc(e.position||'')+'"></label><label>Ойлик маош<input id="eSalary" type="number" min="0" value="'+Number(e.monthlySalary||0)+'"></label><label>Иш бошлаш санаси<input id="eStartDate" type="date" value="'+esc(e.startDate||nowDate())+'"></label><label>График<select id="eSchedule">'+opts.join('')+'</select></label><button class="btn primary span2" id="eSave">Сақлаш</button></div>');
+    q('#eSave').onclick=function(){var p={fullName:(q('#eFullName').value||'').trim(),position:(q('#ePosition').value||'').trim(),monthlySalary:Number(q('#eSalary').value||0),scheduleId:q('#eSchedule').value,startDate:q('#eStartDate').value};gas('updateEmployee',[state.token,id,p],function(){closeModal();loadCore(function(){switchPage('employees');toast('Ходим янгиланди');});},function(err){toast(err.message);});};
+  }
+  function toggleEmployee(id,active){gas('updateEmployee',[state.token,id,{active:!active}],function(){loadCore(function(){switchPage('employees');toast(!active?'Ходим фаоллаштирилди':'Ходим ўчирилди');});},function(e){toast(e.message);});}
+  function resetFace(id){if(!confirm('Face ID профилини ўчириб, қайта рўйхатга олишни талаб қиламизми?'))return;gas('resetEmployeeFace',[state.token,id],function(){loadCore(function(){switchPage('employees');toast('Face ID тозаланди');});},function(e){toast(e.message);});}
+
+  function loadTerminalSettings(done,fail){
+    if(state.terminalSettings){done(state.terminalSettings);return;}
+    gas('getAdminSettings',[state.token],function(s){state.terminalSettings=s||{};done(state.terminalSettings);},fail||function(e){toast(e.message);});
+  }
+
+  function deleteEmployee(id,name){if(!confirm('«'+name+'» ходимини ўчиришни тасдиқлайсизми?'))return;gas('deleteEmployee',[state.token,id],function(){toast('Ходим ўчирилди');refresh();},function(e){toast(e.message);});}
+
+  function openCorrection(employeeId,date){
+    var e=employeeById(employeeId);
+    openModal('<h2>Давоматни тўғрилаш</h2><p><b>'+esc(e?e.fullName:employeeId)+'</b> · '+esc(date)+'</p><div class="form-grid"><label>Майдон<select id="corrField"><option value="FIRST_IN">КЕЛДИ</option><option value="LAST_OUT">КЕТДИ</option></select></label><label>Янги вақт<input id="corrTime" type="datetime-local"></label><label class="span2">Сабаб<input id="corrReason" placeholder="Нима учун тўғриланмоқда"></label><button class="btn primary span2" id="corrSave">Сақлаш</button></div><p class="hint">Вақтни бўш қолдириш — ушбу белгини бекор қилиш.</p>');
+    q('#corrSave').onclick=function(){var raw=q('#corrTime').value,iso='';if(raw){var dt=new Date(raw);if(isNaN(dt.getTime()))return toast('Вақт нотўғри');iso=dt.toISOString();}var p={employeeId:employeeId,date:date,field:q('#corrField').value,newValue:iso,reason:(q('#corrReason').value||'').trim()};if(!p.reason)return toast('Сабабни киритинг');gas('adminCorrectAttendance',[state.token,p],function(){closeModal();loadAttendance();toast('Давомат тўғриланди');},function(e){toast(e.message);});};
+  }
+  function loadAttendance(){var d=q('#attendanceDate').value||nowDate();gas('getAttendanceReport',[state.token,d,d],function(rows){var a=[];for(var i=0;i<rows.length;i++){var r=rows[i];a.push('<tr><td><b>'+esc(r.FULL_NAME)+'</b></td><td>'+localTime(r.FIRST_IN)+'</td><td>'+localTime(r.LAST_OUT)+'</td><td>'+mins(r.WORKED_MIN)+'</td><td>'+Number(r.LATE_MIN||0)+'</td><td>'+Number(r.EARLY_MIN||0)+'</td><td>'+Number(r.OVERTIME_MIN||0)+'</td><td>'+pill(r.STATUS)+'</td><td><button class="btn" data-corr="'+esc(r.EMPLOYEE_ID)+'" data-date="'+esc(r.DATE)+'">Тўғрилаш</button></td></tr>');}html('#attendanceBody',a.length?a.join(''):'<tr><td colspan="9" class="empty">Маълумот йўқ</td></tr>');},function(e){toast(e.message);});}
+  function loadSalary(){var m=q('#salaryMonth').value||nowMonth();gas('getSalaryReport',[state.token,m],function(rows){var a=[];for(var i=0;i<rows.length;i++){var r=rows[i];a.push('<tr><td><b>'+esc(r.FULL_NAME)+'</b></td><td>'+money(r.MONTHLY_SALARY)+'</td><td>'+r.PLANNED_DAYS+'</td><td>'+r.PRESENT_DAYS+'</td><td>'+r.ABSENT_DAYS+'</td><td>'+mins(r.WORKED_MIN)+'</td><td>'+mins(r.LATE_MIN)+'</td><td>'+mins(r.OVERTIME_MIN)+'</td><td>'+money(r.ABSENCE_DEDUCTION)+'</td><td class="money">'+money(r.PAYABLE)+'</td><td>'+esc(r.STATUS||'')+'</td></tr>');}html('#salaryBody',a.length?a.join(''):'<tr><td colspan="11" class="empty">Маълумот йўқ</td></tr>');},function(e){toast(e.message);});}
+  function loadReport(){var f=q('#reportFrom').value||nowDate(),t=q('#reportTo').value||f;gas('getAttendanceReport',[state.token,f,t],function(rows){var a=[];for(var i=0;i<rows.length;i++){var r=rows[i];a.push('<tr><td>'+esc(r.DATE)+'</td><td><b>'+esc(r.FULL_NAME)+'</b></td><td>'+localTime(r.FIRST_IN)+'</td><td>'+localTime(r.LAST_OUT)+'</td><td>'+mins(r.WORKED_MIN)+'</td><td>'+Number(r.LATE_MIN||0)+'</td><td>'+Number(r.EARLY_MIN||0)+'</td><td>'+Number(r.OVERTIME_MIN||0)+'</td><td>'+pill(r.STATUS)+'</td></tr>');}html('#reportBody',a.length?a.join(''):'<tr><td colspan="9" class="empty">Маълумот йўқ</td></tr>');},function(e){toast(e.message);});}
+  function exportExcel(){gas('exportAttendanceExcel',[state.token,q('#reportFrom').value||nowDate(),q('#reportTo').value||nowDate()],function(r){if(r&&r.xlsxUrl)window.open(r.xlsxUrl,'_blank');},function(e){toast(e.message);});}
+  function loadSettings(){gas('getAdminSettings',[state.token],function(cfg){state.terminalSettings=cfg||{};q('#cfgTerminalUrl').value=cfg.TERMINAL_PUBLIC_URL||'';q('#cfgDeviceId').value=cfg.DEVICE_ID||'';text('#cfgDeviceSecretStatus',cfg.DEVICE_TOKEN_CONFIGURED?'Қурилма токени хавфсиз Script Properties да сақланмоқда':'Қурилма токени созланмаган');q('#cfgMatch').value=cfg.FACE_MATCH_THRESHOLD||'0.62';q('#cfgLive').value=cfg.LIVENESS_THRESHOLD||'0.55';q('#cfgReal').value=cfg.REALNESS_THRESHOLD||'0.55';q('#cfgRetention').value=cfg.PHOTO_RETENTION_DAYS||'60';q('#cfgTelegramChat').value=cfg.TELEGRAM_CHAT_ID||'';q('#cfgLateAlert').value=cfg.LATE_ALERT_MINUTES||'30';renderDeviceButton();},function(e){toast(e.message);});}
+  function currentDevice(){var id=q('#cfgDeviceId').value||'';for(var i=0;i<state.devices.length;i++)if(String(state.devices[i].deviceId)===String(id))return state.devices[i];return null;}
+  function renderDeviceButton(){var d=currentDevice(),b=q('#toggleDeviceBtn');if(!b)return;b.textContent=d&&d.active===false?'Терминални фаоллаштириш':'Терминални ўчириш';b.className='btn '+(d&&d.active===false?'primary':'danger');}
+  function toggleDevice(){var d=currentDevice();if(!d)return toast('Қурилма топилмади');gas('setDeviceActive',[state.token,d.deviceId,d.active===false],function(){loadCore(function(){loadSettings();toast(d.active===false?'Терминал фаоллаштирилди':'Терминал ўчирилди');});},function(e){toast(e.message);});}
+  function saveSettings(){var p={FACE_MATCH_THRESHOLD:q('#cfgMatch').value,LIVENESS_THRESHOLD:q('#cfgLive').value,REALNESS_THRESHOLD:q('#cfgReal').value,PHOTO_RETENTION_DAYS:q('#cfgRetention').value,TELEGRAM_CHAT_ID:q('#cfgTelegramChat').value,LATE_ALERT_MINUTES:q('#cfgLateAlert').value,TERMINAL_PUBLIC_URL:(q('#cfgTerminalUrl').value||'').trim()};if((q('#cfgTelegramToken').value||'').trim())p.TELEGRAM_BOT_TOKEN=q('#cfgTelegramToken').value.trim();gas('saveAdminSettings',[state.token,p],function(){toast('Созламалар сақланди');},function(e){toast(e.message);});}
+  function regenToken(){if(!confirm('Эски токен ишламай қолади. Давом этасизми?'))return;gas('regenerateDeviceToken',[state.token,q('#cfgDeviceId').value],function(){toast('Токен алмаштирилди. Терминални «Телефон/планшетни улаш» орқали қайта очинг.');loadSettings();},function(e){toast(e.message);});}
+  function changePin(){gas('changeAdminPin',[state.token,q('#oldPin').value,q('#newPin').value],function(){toast('PIN ўзгартирилди');q('#oldPin').value='';q('#newPin').value='';},function(e){toast(e.message);});}
+
+  function switchPage(page){qa('#nav button').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-page')===page);});qa('.page').forEach(function(p){p.classList.remove('active');});var sec=q('#page-'+page);if(sec)sec.classList.add('active');var n={dashboard:'Бош саҳифа',employees:'Ходимлар',attendance:'Давомат',schedules:'Графиклар',salary:'Ойлик',reports:'Ҳисоботлар',settings:'Созламалар',system:'Тизим'};text('#pageTitle',n[page]||page);if(page==='attendance')loadAttendance();if(page==='salary')loadSalary();if(page==='reports')loadReport();if(page==='settings')loadSettings();if(page==='system')loadSystem();}
+
+  q('#loginBtn').onclick=login; q('#pinInput').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();login();}};
+  q('#logoutBtn').onclick=function(){var t=state.token;clearSession();gas('adminLogout',[t],function(){location.reload();},function(){location.reload();},5000);};q('#refreshBtn').onclick=refresh;q('#modalClose').onclick=closeModal;q('#modal').onclick=function(e){if(e.target===q('#modal'))closeModal();};
+  qa('#nav button').forEach(function(b){b.onclick=function(){switchPage(b.getAttribute('data-page'));};});
+  q('#addEmployeeBtn').onclick=openAddEmployee;q('#loadAttendanceBtn').onclick=loadAttendance;q('#loadSalaryBtn').onclick=loadSalary;q('#loadReportBtn').onclick=loadReport;q('#excelBtn').onclick=exportExcel;q('#saveSettingsBtn').onclick=saveSettings;q('#regenTokenBtn').onclick=regenToken;q('#changePinBtn').onclick=changePin;q('#toggleDeviceBtn').onclick=toggleDevice;q('#loadSystemBtn').onclick=loadSystem;
+  function showTerminalLink(){
+    gas('getTerminalHostUrl',[state.token],function(r){
+      if(!r||!r.ok||!r.url){toast('Терминал ҳаволаси тайёр эмас');return;}
+      openModal('<h2>Планшет учун DAVOMAT</h2><p class="hint">Бу ҳаволани телефон ёки планшетда бир марта очинг. Кейин DAVOMAT КЕЛДИ / КЕТДИ экранини тўғридан-тўғри очади.</p><a class="btn primary" style="text-decoration:none;display:inline-flex" target="_blank" href="'+esc(r.url)+'">DAVOMAT НИ ОЧИШ</a><p class="hint" style="margin-top:12px">URL, ID, токен ёки код киритилмайди.</p>');
+    },function(e){toast(e.message);});
+  }
+  q('#openTerminalBtn').onclick=showTerminalLink;
+  q('#pairTerminalBtn').onclick=showTerminalLink;
+  q('#employeesBody').onclick=function(e){
+    var b=e.target.closest('[data-act]');if(!b)return;
+    var id=b.getAttribute('data-id'),act=b.getAttribute('data-act');
+    if(act==='enroll'){toast('Юзни рўйхатга олиш ойнаси очилмоқда…');return;}
+    e.preventDefault();
+    if(act==='edit')return openEditEmployee(id);
+    if(act==='resetface')return resetFace(id);
+    if(act==='toggle')return toggleEmployee(id,b.getAttribute('data-active')==='1');
+  };
+  q('#attendanceBody').onclick=function(e){var b=e.target.closest('[data-corr]');if(b)openCorrection(b.getAttribute('data-corr'),b.getAttribute('data-date'));};
+  q('#schedulesGrid').onclick=function(e){var b=e.target.closest('button[data-sch]');if(b)openSchedule(b.getAttribute('data-sch'));};q('#addScheduleBtn').onclick=function(){openSchedule('');};
+
+  function loadSystem(){
+    gas('getSystemDiagnostics',[state.token],function(r){
+      var a=[],ds=r.devices||[];for(var i=0;i<ds.length;i++)a.push('<div class="alert-item"><b>'+esc(ds[i].deviceId)+'</b> · '+(ds[i].active?'ФАОЛ':'ЎЧИРИЛГАН')+' · охирги алоқа '+esc(ds[i].lastSeenAt||'—')+'</div>');html('#systemDevices',a.length?a.join(''):'<div class="empty">Қурилма йўқ</div>');
+      a=[];var rows=r.recentSync||[];for(i=0;i<rows.length;i++){if(String(rows[i].STATUS)==='DONE')continue;a.push('<tr><td>'+esc(rows[i].UPDATED_AT||rows[i].CREATED_AT||'')+'</td><td>'+esc(rows[i].ACTION||'')+'</td><td>'+esc(rows[i].STATUS||'')+'</td><td>'+esc(rows[i].MESSAGE||'')+'</td></tr>');}html('#systemSync',a.length?a.join(''):'<tr><td colspan="4" class="empty">Хато йўқ</td></tr>');
+      a=[];rows=r.recentAudit||[];for(i=0;i<rows.length;i++)a.push('<tr><td>'+esc(rows[i].CREATED_AT||'')+'</td><td>'+esc(rows[i].ACTION||'')+'</td><td>'+esc(rows[i].ENTITY||'')+' '+esc(rows[i].ENTITY_ID||'')+'</td><td>'+esc(rows[i].REASON||'')+'</td></tr>');html('#systemAudit',a.length?a.join(''):'<tr><td colspan="4" class="empty">Аудит йўқ</td></tr>');
+      a=[];rows=r.recentTelegram||[];for(i=0;i<rows.length;i++)a.push('<tr><td>'+esc(rows[i].CREATED_AT||'')+'</td><td>'+esc(rows[i].STATUS||'')+'</td><td>'+esc(rows[i].MESSAGE||'')+'</td></tr>');html('#systemTelegram',a.length?a.join(''):'<tr><td colspan="3" class="empty">Telegram журнал бўш</td></tr>');
+    },function(e){toast(e.message);});
+  }
+
+  function restoreSession(){
+    var token='';try{token=sessionStorage.getItem(SESSION_KEY)||'';}catch(e){}
+    if(!token)return;
+    state.token=token;setHealth('Сессия текширилмоқда…','#778199');
+    loadCore(function(){q('#loginView').classList.add('hidden');q('#appView').classList.remove('hidden');setHealth('Сессия тикланди · UI '+UI_VERSION,'#0e9f6e');},function(){showLogin('Сессия тугади. PIN ни қайта киритинг.');});
+  }
+
+  text('#todayLabel',nowDate());q('#attendanceDate').value=nowDate();q('#reportFrom').value=nowDate();q('#reportTo').value=nowDate();q('#salaryMonth').value=nowMonth();restoreSession();
+})();
+</script>
+</body>
+</html>
