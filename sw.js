@@ -1,14 +1,12 @@
-const VERSION='1.4.0-hotfix2';
-const SHELL_CACHE=`davomat-shell-v${VERSION}`;
+const VERSION='1.5.0-prod-20260918-1';
+const SHELL_CACHE=`davomat-shell-${VERSION}`;
 const MODEL_CACHE='davomat-model-runtime-v1';
 const SHELL=[
   './',
   './index.html',
-  './styles.css?v=1.4.0',
-  './app.js?v=1.4.0',
-  './top-level-fix.js?v=1.4.0-hotfix1',
-  './face-db-fix.js?v=1.4.0-hotfix2',
-  './manifest.webmanifest',
+  './styles.css?v=1.5.0-prod-20260918-1',
+  './app.js?v=1.5.0-prod-20260918-1',
+  './manifest.webmanifest?v=1.5.0-prod-20260918-1',
   './icon.svg'
 ];
 
@@ -31,6 +29,10 @@ self.addEventListener('activate',event=>{
   })());
 });
 
+self.addEventListener('message',event=>{
+  if(event.data&&event.data.type==='SKIP_WAITING')self.skipWaiting();
+});
+
 function isHumanModel(url){
   return url.hostname==='cdn.jsdelivr.net' &&
     (url.pathname.includes('/@vladmandic/human@') || url.pathname.includes('/models/'));
@@ -45,22 +47,16 @@ async function modelCacheFirst(request){
   return response;
 }
 
-async function navigationShell(event){
+async function networkFirstNavigation(event){
   const cache=await caches.open(SHELL_CACHE);
-  const cached=await cache.match('./index.html');
-  const networkPromise=(async()=>{
-    try{
-      const preload=await event.preloadResponse;
-      const response=preload||await fetch(event.request,{cache:'no-cache'});
-      if(response&&response.ok){try{await cache.put('./index.html',response.clone());}catch{}}
-      return response;
-    }catch{return null;}
-  })();
-  event.waitUntil(networkPromise);
-  if(cached)return cached;
-  const network=await networkPromise;
-  if(network)return network;
-  return new Response('DAVOMAT offline',{status:503,headers:{'Content-Type':'text/plain; charset=UTF-8'}});
+  try{
+    const preload=await event.preloadResponse;
+    const response=preload||await fetch(event.request,{cache:'no-store'});
+    if(response&&response.ok){try{await cache.put('./index.html',response.clone());}catch{}}
+    return response;
+  }catch{
+    return (await cache.match('./index.html')) || new Response('DAVOMAT offline',{status:503,headers:{'Content-Type':'text/plain; charset=UTF-8'}});
+  }
 }
 
 async function shellStaleWhileRevalidate(event){
@@ -76,7 +72,7 @@ async function shellStaleWhileRevalidate(event){
   if(cached)return cached;
   const network=await networkPromise;
   if(network)return network;
-  return cache.match('./index.html');
+  return new Response('DAVOMAT asset unavailable',{status:503,headers:{'Content-Type':'text/plain; charset=UTF-8'}});
 }
 
 self.addEventListener('fetch',event=>{
@@ -91,7 +87,7 @@ self.addEventListener('fetch',event=>{
   if(url.origin!==self.location.origin)return;
 
   if(event.request.mode==='navigate'){
-    event.respondWith(navigationShell(event));
+    event.respondWith(networkFirstNavigation(event));
     return;
   }
 
