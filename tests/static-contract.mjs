@@ -22,6 +22,9 @@ assert(app.includes("DEAD_STORE = 'deadLetter'"),'dead-letter store missing');
 assert(app.includes('QUEUE_MAX_RETRIES = 5'),'retry ceiling missing');
 assert(app.includes('faces.length>1'),'multiple-face guard missing');
 assert(app.includes('maxDetected:2'),'detector must allow multi-face detection');
+assert(app.includes('gesture:{enabled:true}'),'gesture engine required for active liveness');
+assert(app.includes('updateBlinkChallenge'),'blink challenge missing');
+assert(app.includes('ms>=40&&ms<=900'),'blink temporal validation missing');
 assert(app.includes('S.hits<3'),'recognition must require consecutive matches');
 assert(app.includes('await stopCamera();\n  showSaving'),'camera must stop before server wait');
 assert(app.includes('await cacheDelete(BOOT_CACHE_KEY)'),'Face DB cache must be invalidated after enrollment');
@@ -37,6 +40,8 @@ assert(!code.includes("recordRequest_(requestId, deviceId, action, 'PROCESSING'"
 assert(code.includes('tryLock(3000)'),'critical lock must be bounded');
 assert(code.includes('finalizeAttendancePostCommit_'),'post-commit processing missing');
 assert(code.includes('attendanceBusinessDate_'),'overnight shift business date missing');
+assert(code.includes('ENROLLMENT_LIVENESS_REQUIRED'),'enrollment liveness enforcement missing');
+assert(code.includes("REQUIRE_ACTIVE_LIVENESS','true"),'active liveness must default on');
 assert(code.includes('normalizeBool_(r.ACTIVE)'),'inactive employee guard missing');
 
 const gasMethods=[...new Set([...admin.matchAll(/\bgas\(\s*['\"]([^'\"]+)['\"]/g)].map(m=>m[1]))];
