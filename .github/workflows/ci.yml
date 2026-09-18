@@ -1,0 +1,24 @@
+name: DAVOMAT CI
+
+on:
+  push:
+    branches: [main, production-hardening-2026-09-17]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  contract-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Static architecture contract
+        run: node tests/static-contract.mjs
+      - name: Attendance business contract
+        run: node tests/business-contract.mjs
