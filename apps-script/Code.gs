@@ -416,6 +416,12 @@ function changeAdminPin(sessionToken, oldPin, newPin) {
   return {ok:true};
 }
 
+function adminLogout(sessionToken) {
+  var props = PropertiesService.getScriptProperties();
+  if (sessionToken) props.deleteProperty('ADMIN_SESSION_' + String(sessionToken));
+  return {ok:true};
+}
+
 function verifyDeviceToken_(deviceId, token) {
   var row = findOne_(DAVOMAT.SHEETS.DEVICES, function(r){ return String(r.DEVICE_ID) === String(deviceId) && normalizeBool_(r.ACTIVE); });
   if (!row) return false;
@@ -1054,8 +1060,12 @@ function listEmployees(sessionToken) {
   requireAdmin_(sessionToken);
   var schedules = {};
   rowsAsObjects_(DAVOMAT.SHEETS.SCHEDULES).forEach(function(s){ schedules[String(s.SCHEDULE_ID)] = s.NAME; });
-  return sanitizeForClient_(rowsAsObjects_(DAVOMAT.SHEETS.EMPLOYEES).filter(function(r){return normalizeBool_(r.ACTIVE);}).map(function(e){
-    return {employeeId:String(e.EMPLOYEE_ID),fullName:String(e.FULL_NAME),position:String(e.POSITION||''),monthlySalary:toNumber_(e.MONTHLY_SALARY,0),scheduleId:String(e.SCHEDULE_ID),scheduleName:String(schedules[String(e.SCHEDULE_ID)]||''),startDate:dateKeyValue_(e.START_DATE),faceStatus:String(e.FACE_STATUS||'NOT_ENROLLED')};
+  return sanitizeForClient_(rowsAsObjects_(DAVOMAT.SHEETS.EMPLOYEES).map(function(e){
+    return {
+      employeeId:String(e.EMPLOYEE_ID),fullName:String(e.FULL_NAME),position:String(e.POSITION||''),
+      monthlySalary:toNumber_(e.MONTHLY_SALARY,0),scheduleId:String(e.SCHEDULE_ID),scheduleName:String(schedules[String(e.SCHEDULE_ID)]||''),
+      startDate:dateKeyValue_(e.START_DATE),active:normalizeBool_(e.ACTIVE),faceStatus:String(e.FACE_STATUS||'NOT_ENROLLED')
+    };
   }));
 }
 
@@ -1145,6 +1155,36 @@ function deleteEmployee(sessionToken, employeeId) {
   getSheet_(DAVOMAT.SHEETS.EMPLOYEES).deleteRow(emp._row);
   audit_('admin','DELETE','EMPLOYEE',employeeId,before,{},'Test/unused employee deleted');
   return {ok:true,mode:'deleted'};
+}
+
+function resetEmployeeFace(sessionToken, employeeId) {
+  requireAdmin_(sessionToken);
+  var emp = findOne_(DAVOMAT.SHEETS.EMPLOYEES,function(r){return String(r.EMPLOYEE_ID)===String(employeeId);});
+  if (!emp) throw new Error('EMPLOYEE_NOT_FOUND');
+  var count=0;
+  findAll_(DAVOMAT.SHEETS.FACE_PROFILES,function(r){return String(r.EMPLOYEE_ID)===String(employeeId)&&normalizeBool_(r.ACTIVE);})
+    .forEach(function(r){updateRowObject_(DAVOMAT.SHEETS.FACE_PROFILES,r._row,{ACTIVE:false});count++;});
+  findAll_(DAVOMAT.SHEETS.ENROLLMENT_SESSIONS,function(r){return String(r.EMPLOYEE_ID)===String(employeeId)&&String(r.STATUS)==='OPEN';})
+    .forEach(function(r){updateRowObject_(DAVOMAT.SHEETS.ENROLLMENT_SESSIONS,r._row,{STATUS:'CANCELLED'});});
+  updateRowObject_(DAVOMAT.SHEETS.EMPLOYEES,emp._row,{FACE_STATUS:'NOT_ENROLLED',UPDATED_AT:nowIso_()});
+  audit_('admin','FACE_RESET','EMPLOYEE',employeeId,{faceStatus:String(emp.FACE_STATUS||'')},{faceStatus:'NOT_ENROLLED',profilesDisabled:count},'');
+  return {ok:true,profilesDisabled:count};
+}
+
+function listDevices(sessionToken) {
+  requireAdmin_(sessionToken);
+  return sanitizeForClient_(rowsAsObjects_(DAVOMAT.SHEETS.DEVICES).map(function(r){
+    return {deviceId:String(r.DEVICE_ID),name:String(r.NAME||''),active:normalizeBool_(r.ACTIVE),lastSeenAt:String(r.LAST_SEEN_AT||''),createdAt:String(r.CREATED_AT||'')};
+  }));
+}
+
+function setDeviceActive(sessionToken, deviceId, active) {
+  requireAdmin_(sessionToken);
+  var row=findOne_(DAVOMAT.SHEETS.DEVICES,function(r){return String(r.DEVICE_ID)===String(deviceId);});
+  if(!row) throw new Error('DEVICE_NOT_FOUND');
+  updateRowObject_(DAVOMAT.SHEETS.DEVICES,row._row,{ACTIVE:!!active,LAST_SEEN_AT:nowIso_()});
+  audit_('admin',active?'ACTIVATE':'DEACTIVATE','DEVICE',deviceId,{ACTIVE:normalizeBool_(row.ACTIVE)},{ACTIVE:!!active},'');
+  return {ok:true,deviceId:String(deviceId),active:!!active};
 }
 
 function cancelOpenEnrollmentSessionsForDevice_(deviceId) {
@@ -1378,6 +1418,23 @@ function getAdminSettings(sessionToken) {
 }
 
 
+function getSystemDiagnostics(sessionToken) {
+  requireAdmin_(sessionToken);
+  function recent(sheetName,limit){
+    var rows=rowsAsObjects_(sheetName);
+    rows.sort(function(a,b){return new Date(b.UPDATED_AT||b.CREATED_AT||0).getTime()-new Date(a.UPDATED_AT||a.CREATED_AT||0).getTime();});
+    return rows.slice(0,limit).map(function(r){var x=Object.assign({},r);delete x._row;return sanitizeForClient_(x);});
+  }
+  return {
+    ok:true,version:DAVOMAT.VERSION,time:nowIso_(),
+    devices:listDevices(sessionToken),
+    recentSync:recent(DAVOMAT.SHEETS.SYNC_LOG,30),
+    recentTelegram:recent(DAVOMAT.SHEETS.TELEGRAM_LOG,30),
+    recentAudit:recent(DAVOMAT.SHEETS.ADMIN_AUDIT,50)
+  };
+}
+
+
 /**
  * One round-trip bootstrap for the admin UI.
  * Keeps login fast by avoiding four sequential google.script.run calls.
@@ -1390,7 +1447,8 @@ function getAdminAppData(sessionToken) {
     bootstrap:getAdminBootstrap(sessionToken),
     employees:listEmployees(sessionToken),
     schedules:listSchedules(sessionToken),
-    settings:getAdminSettings(sessionToken)
+    settings:getAdminSettings(sessionToken),
+    devices:listDevices(sessionToken)
   };
 }
 
