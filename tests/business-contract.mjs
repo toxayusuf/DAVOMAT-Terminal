@@ -29,7 +29,7 @@ ctx.getNextEventType_=()=>({type:'IN',reason:''});
 ctx.appendRejectedEvent_=()=>{throw new Error('unexpected rejection')};
 ctx.dateToIso_=d=>new Date(d).toISOString();
 ctx.appendObject_=(sheet,obj)=>{if(sheet===ctx.DAVOMAT.SHEETS.ATTENDANCE_EVENTS){events.push({...obj,_row:events.length+2});return events.length+1;}return 1;};
-const payload={eventId:'evt-1',employeeId:'E1',deviceId:'terminal-01',matchScore:.91,livenessScore:.9,realScore:.9,requestedEventType:'IN',clientTime:'2026-09-18T09:00:00+05:00'};
+const payload={eventId:'evt-1',employeeId:'E1',deviceId:'terminal-01',matchScore:.91,livenessScore:.9,realScore:.9,requestedEventType:'IN',clientTime:'2026-09-18T09:00:00+05:00',blinkOk:true};
 const one=ctx.processAttendanceEventUnlocked_(payload);
 const two=ctx.processAttendanceEventUnlocked_(payload);
 assert.equal(one.status,'accepted');
