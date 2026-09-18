@@ -2,13 +2,17 @@
 'use strict';
 
 const $ = s => document.querySelector(s);
-const VERSION = '1.4.0';
+const VERSION = '1.5.0';
 const CFG_KEY = 'davomat-terminal-config-v2';
-const Q_KEY = 'davomat-offline-queue-v2';
+const Q_KEY = 'davomat-offline-queue-v2'; // legacy migration only
 const DB_NAME = 'davomat-fast-cache';
+const DB_VERSION = 2;
 const DB_STORE = 'kv';
-const BOOT_CACHE_KEY = 'bootstrap-v3';
-const BOOT_CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const QUEUE_STORE = 'offlineQueue';
+const DEAD_STORE = 'deadLetter';
+const BOOT_CACHE_KEY = 'bootstrap-v4';
+const BOOT_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
+const QUEUE_MAX_RETRIES = 5;
 const MODEL = 'https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/';
 const HUMAN_LIB = 'https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js';
 
@@ -58,15 +62,54 @@ function openDb(){
   if(dbPromise)return dbPromise;
   dbPromise=new Promise((resolve,reject)=>{
     if(!('indexedDB' in window)){dbPromise=null;reject(new Error('NO_IDB'));return}
-    const req=indexedDB.open(DB_NAME,1);
-    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(DB_STORE))db.createObjectStore(DB_STORE)};
+    const req=indexedDB.open(DB_NAME,DB_VERSION);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains(DB_STORE))db.createObjectStore(DB_STORE);
+      if(!db.objectStoreNames.contains(QUEUE_STORE)){
+        const q=db.createObjectStore(QUEUE_STORE,{keyPath:'id'});
+        q.createIndex('createdAt','createdAt',{unique:false});
+        q.createIndex('status','status',{unique:false});
+      }
+      if(!db.objectStoreNames.contains(DEAD_STORE))db.createObjectStore(DEAD_STORE,{keyPath:'id'});
+    };
     req.onsuccess=()=>resolve(req.result);
     req.onerror=()=>{dbPromise=null;reject(req.error||new Error('IDB_ERROR'))};
+    req.onblocked=()=>console.warn('DAVOMAT IndexedDB upgrade blocked by another tab');
   });
   return dbPromise;
 }
 async function cacheGet(key){try{const db=await openDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readonly'),req=tx.objectStore(DB_STORE).get(key);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error)})}catch{return null}}
 async function cacheSet(key,value){try{const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put(value,key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch{}}
+async function cacheDelete(key){try{const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).delete(key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch{}}
+async function queuePut(ev){
+  const db=await openDb();
+  const row=Object.assign({id:ev.id||ev.eventId||ev.requestId||uuid(),status:'PENDING',retryCount:0,createdAt:Date.now(),nextAttemptAt:0,lastError:''},ev);
+  row.id=String(row.id);
+  await new Promise((resolve,reject)=>{const tx=db.transaction(QUEUE_STORE,'readwrite');tx.objectStore(QUEUE_STORE).put(row);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)});
+  return row;
+}
+async function queueAll(){
+  try{const db=await openDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(QUEUE_STORE,'readonly'),req=tx.objectStore(QUEUE_STORE).getAll();req.onsuccess=()=>resolve((req.result||[]).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)));req.onerror=()=>reject(req.error)})}catch{return[]}
+}
+async function queueDelete(id){
+  const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(QUEUE_STORE,'readwrite');tx.objectStore(QUEUE_STORE).delete(String(id));tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)});
+}
+async function queueMoveDead(ev,error){
+  const db=await openDb(),row=Object.assign({},ev,{status:'DEAD',lastError:String(error||ev.lastError||'UNKNOWN'),deadAt:Date.now()});
+  await new Promise((resolve,reject)=>{const tx=db.transaction([QUEUE_STORE,DEAD_STORE],'readwrite');tx.objectStore(DEAD_STORE).put(row);tx.objectStore(QUEUE_STORE).delete(String(row.id));tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)});
+}
+async function queueCount(){return (await queueAll()).length}
+async function deadCount(){
+  try{const db=await openDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(DEAD_STORE,'readonly'),req=tx.objectStore(DEAD_STORE).count();req.onsuccess=()=>resolve(req.result||0);req.onerror=()=>reject(req.error)})}catch{return 0}
+}
+async function migrateLegacyQueue(){
+  let legacy=[];try{legacy=JSON.parse(localStorage.getItem(Q_KEY)||'[]')}catch{}
+  if(Array.isArray(legacy)&&legacy.length){
+    for(const ev of legacy){try{await queuePut(Object.assign({},ev,{id:ev.id||ev.eventId||ev.requestId||uuid(),migratedFrom:'localStorage'}))}catch(e){console.warn('legacy queue migration',e)}}
+  }
+  try{localStorage.removeItem(Q_KEY)}catch{}
+}
 
 function jsonp(api,params={},timeout=12000){
   return new Promise((resolve,reject)=>{
@@ -107,18 +150,40 @@ async function postAndWait(action,payload,timeout=60000){
   if(sendError)throw new Error('NETWORK_ERROR');
   throw new Error('TIMEOUT');
 }
-function qload(){try{return JSON.parse(localStorage.getItem(Q_KEY)||'[]')}catch{return[]}}
-function qsave(a){localStorage.setItem(Q_KEY,JSON.stringify(a))}
-async function syncQueue(){if(!navigator.onLine||!S.cfg)return;const a=qload(),left=[];for(let i=0;i<a.length;i++){const ev=a[i];try{const r=await postAndWait(ev.action,ev,60000);if(!r?.ok)throw new Error(r?.reason||r?.error||'SYNC_REJECTED')}catch(e){left.push(...a.slice(i));break}}qsave(left)}
+function retryableQueueError(err){
+  const code=String(err?.message||err||'');
+  return ['NETWORK_ERROR','TIMEOUT','SERVER_BUSY_RETRY','REQUEST_RESULT_NOT_FOUND'].includes(code);
+}
+async function syncQueue(){
+  if(!navigator.onLine||!S.cfg)return;
+  const rows=await queueAll(),now=Date.now();
+  for(const ev of rows){
+    if((ev.nextAttemptAt||0)>now)continue;
+    try{
+      const r=await postAndWait(ev.action,ev,60000);
+      if(!r?.ok)throw new Error(r?.reason||r?.error||'SYNC_REJECTED');
+      await queueDelete(ev.id);
+    }catch(e){
+      const retryCount=(Number(ev.retryCount)||0)+1;
+      if(!retryableQueueError(e)||retryCount>QUEUE_MAX_RETRIES){
+        await queueMoveDead(Object.assign({},ev,{retryCount}),e?.message||e);
+        continue;
+      }
+      const backoff=Math.min(30*60*1000,Math.pow(2,retryCount-1)*15000);
+      await queuePut(Object.assign({},ev,{retryCount,status:'RETRY',lastError:String(e?.message||e),nextAttemptAt:Date.now()+backoff}));
+    }
+  }
+}
 
 function ticks(){const w=$('#scanTicks');w.innerHTML='';for(let i=0;i<36;i++){const e=document.createElement('span');e.className='scan-tick';e.style.transform=`translate(-50%,-50%) rotate(${i*10}deg) translateY(-190px)`;w.appendChild(e)}}
 function ring(f=0){const a=[...document.querySelectorAll('.scan-tick')],n=Math.round(Math.max(0,Math.min(1,f))*a.length);a.forEach((e,i)=>{e.classList.toggle('done',i<n);e.classList.toggle('active',i===n&&n<a.length)})}
 
 async function ensureHumanLib(){if(window.Human?.Human)return window.Human;if(S.humanLibInit)return S.humanLibInit;S.humanLibInit=new Promise((resolve,reject)=>{const sc=document.createElement('script');sc.src=HUMAN_LIB;sc.async=true;sc.crossOrigin='anonymous';sc.onload=()=>window.Human?.Human?resolve(window.Human):reject(new Error('HUMAN_LIB_FAILED'));sc.onerror=()=>reject(new Error('HUMAN_LIB_FAILED'));document.head.appendChild(sc)}).catch(e=>{S.humanLibInit=null;throw e});return S.humanLibInit}
-async function initHuman(){if(S.human)return S.human;if(S.humanInit)return S.humanInit;const started=performance.now();S.humanInit=(async()=>{await ensureHumanLib();S.human=new Human.Human({backend:'webgl',modelBasePath:MODEL,cacheSensitivity:.72,face:{enabled:true,detector:{rotation:false,maxDetected:1},mesh:{enabled:true},description:{enabled:true},iris:{enabled:false},emotion:{enabled:false},antispoof:{enabled:true},liveness:{enabled:true}},body:{enabled:false},hand:{enabled:false},object:{enabled:false}});await S.human.load();await S.human.warmup();S.perf.humanMs=Math.round(performance.now()-started);return S.human})().catch(e=>{S.human=null;S.humanInit=null;throw e});return S.humanInit}
+async function initHuman(){if(S.human)return S.human;if(S.humanInit)return S.humanInit;const started=performance.now();S.humanInit=(async()=>{await ensureHumanLib();S.human=new Human.Human({backend:'webgl',modelBasePath:MODEL,cacheSensitivity:.72,face:{enabled:true,detector:{rotation:false,maxDetected:2},mesh:{enabled:true},description:{enabled:true},iris:{enabled:false},emotion:{enabled:false},antispoof:{enabled:true},liveness:{enabled:true}},body:{enabled:false},hand:{enabled:false},object:{enabled:false}});await S.human.load();await S.human.warmup();S.perf.humanMs=Math.round(performance.now()-started);return S.human})().catch(e=>{S.human=null;S.humanInit=null;throw e});return S.humanInit}
 function scheduleHumanLibPreload(){const preload=()=>ensureHumanLib().catch(()=>{});if('requestIdleCallback' in window)requestIdleCallback(preload,{timeout:1500});else setTimeout(preload,500)}
 
-function applyBootstrap(r){if(!r?.ok)return false;S.profiles=r.profiles||[];S.employees=new Map((r.employees||[]).map(e=>[String(e.employeeId),e]));S.thr={match:+r.settings?.matchThreshold||.62,live:+r.settings?.livenessThreshold||.55,real:+r.settings?.realnessThreshold||.55};S.samples=Math.max(6,Math.min(8,+r.settings?.enrollSampleCount||6));return true}
+function applyBootstrap(r){if(!r?.ok)return false;S.profiles=(r.profiles||[]).filter(p=>Array.isArray(p.embedding)&&p.embedding.length);S.employees=new Map((r.employees||[]).map(e=>[String(e.employeeId),e]));S.thr={match:+r.settings?.matchThreshold||.62,live:+r.settings?.livenessThreshold||.55,real:+r.settings?.realnessThreshold||.55};S.samples=Math.max(6,Math.min(8,+r.settings?.enrollSampleCount||6));return true}
+function hasFaceDb(){return S.profiles.length>0&&S.employees.size>0}
 async function bootstrap(){const started=performance.now(),r=await jsonp('bootstrap',{},24000);if(!r?.ok)throw new Error(r?.error||'BOOTSTRAP_FAILED');applyBootstrap(r);S.perf.bootstrapMs=Math.round(performance.now()-started);cacheSet(BOOT_CACHE_KEY,{ts:Date.now(),data:r});return r}
 async function restoreBootstrapCache(){const cached=await cacheGet(BOOT_CACHE_KEY);if(!cached?.data?.ok)return false;if(Date.now()-(cached.ts||0)>BOOT_CACHE_MAX_AGE&&navigator.onLine)return false;if(!applyBootstrap(cached.data))return false;S.bootCacheUsed=true;return true}
 async function loadEnrollment(code){const r=await jsonp('enrollment',{code},18000);if(!r?.ok)throw new Error(r?.error||'ENROLLMENT_CODE_NOT_FOUND');S.pending={pending:true,code:r.code,employee:r.employee};renderPending();return r}
@@ -156,6 +221,8 @@ function idle(){stopCamera();S.mode=null;S.busy=false;S.hit=null;S.hits=0;show('
 async function attendance(face){
   const q=quality(face);
   if(q.live<S.thr.live||q.real<S.thr.real||!q.emb.length)return instruction('Камерага қаранг','Юзни тўғри ёритинг');
+  if(q.size<100)return instruction('Яқинроқ туринг','Юзингизни рамкага яқинлаштиринг');
+  if(q.size>360)return instruction('Бироз узоқроқ туринг','Юзингизни рамка ичида ушланг');
   const m=match(q.emb);
   if(!m?.emp){S.hit=null;S.hits=0;return instruction('Юз аниқланмади','Камерага тўғри қаранг')}
   if(S.hit===m.emp.employeeId)S.hits++;else{S.hit=m.emp.employeeId;S.hits=1}
@@ -175,7 +242,7 @@ async function attendance(face){
   const ev={id,requestId:id,action:'attendance',eventId:id,employeeId:m.emp.employeeId,clientTime,requestedEventType:S.mode,clientSuggestedType:S.mode,matchScore:m.score,livenessScore:q.live,realScore:q.real,blinkOk:false,photoDataUrl,offline:!navigator.onLine};
   const saveStarted=performance.now();
   try{
-    if(!navigator.onLine){const a=qload();a.push(ev);qsave(a);$('#resultIcon').textContent='✓';$('#resultTitle').textContent='ОФЛАЙН ҚАБУЛ ҚИЛИНДИ';$('#resultNote').textContent='Интернет келганда автоматик юборилади';setTimeout(idle,1100);return}
+    if(!navigator.onLine){await queuePut(ev);$('#resultIcon').textContent='✓';$('#resultTitle').textContent='ОФЛАЙН ҚАБУЛ ҚИЛИНДИ';$('#resultNote').textContent='Интернет келганда автоматик юборилади';setTimeout(idle,1100);return}
     const r=await postAndWait('attendance',ev,60000);
     S.perf.saveMs=Math.round(performance.now()-saveStarted);
     if(!r?.ok){if(r?.reason==='EVENT_TYPE_MISMATCH'){const need=r.expectedType==='OUT'?'КЕТДИ':'КЕЛДИ';throw new Error('Сизга ҳозир «'+need+'» ни босиш керак')}throw new Error(r?.reason||r?.error||'SERVER_REJECTED')}
@@ -183,20 +250,20 @@ async function attendance(face){
   }catch(e){await fail(friendly(e))}
 }
 
-async function enroll(face){const en=S.pending?._enroll||(S.pending._enroll={arr:[],last:null,lastAt:0}),q=quality(face);if(q.live<S.thr.live||q.real<S.thr.real||!q.emb.length||q.size<120)return instruction(S.pending.employee.fullName,'Юзни рамка ичида ушланг');if(Date.now()-en.lastAt<280)return;if(en.last&&sim(q.emb,en.last)>.9994)return instruction(S.pending.employee.fullName,'Бошингизни секин айлантиринг');en.arr.push({embedding:Array.from(q.emb,v=>Math.round(v*1e6)/1e6),quality:(q.live+q.real+q.score)/3,pose:'sample-'+(en.arr.length+1)});en.last=Array.from(q.emb);en.lastAt=Date.now();ring(en.arr.length/S.samples);$('#enrollCounter').textContent=`${en.arr.length} / ${S.samples}`;instruction(S.pending.employee.fullName,en.arr.length<S.samples?'Бошингизни секин айлантиринг':'Юз сақланмоқда…');if(en.arr.length<S.samples)return;S.busy=true;const id=uuid();try{const r=await postAndWait('enroll',{id,requestId:id,action:'enroll',enrollmentCode:S.pending.code,samples:en.arr},70000);if(!r?.ok)throw new Error(r?.error||'ENROLL_FAILED');await stopCamera();show('resultView');$('#resultIcon').textContent='✓';$('#resultTitle').textContent='ЮЗ ТАЙЁР';$('#resultName').textContent=r.fullName||'';$('#resultPosition').textContent='';$('#resultType').textContent='';$('#resultTime').textContent='';$('#resultNote').textContent='Ходим рўйхатдан ўтди';S.pending=null;setTimeout(()=>{if(history.length>1){try{history.back();return}catch{}}idle()},1200)}catch(e){await fail('Рўйхатга олиш хатоси: '+friendly(e))}}
+async function enroll(face){const en=S.pending?._enroll||(S.pending._enroll={arr:[],last:null,lastAt:0}),q=quality(face);if(q.live<S.thr.live||q.real<S.thr.real||!q.emb.length||q.size<120)return instruction(S.pending.employee.fullName,'Юзни рамка ичида ушланг');if(Date.now()-en.lastAt<280)return;if(en.last&&sim(q.emb,en.last)>.9994)return instruction(S.pending.employee.fullName,'Бошингизни секин айлантиринг');en.arr.push({embedding:Array.from(q.emb,v=>Math.round(v*1e6)/1e6),quality:(q.live+q.real+q.score)/3,pose:'sample-'+(en.arr.length+1)});en.last=Array.from(q.emb);en.lastAt=Date.now();ring(en.arr.length/S.samples);$('#enrollCounter').textContent=`${en.arr.length} / ${S.samples}`;instruction(S.pending.employee.fullName,en.arr.length<S.samples?'Бошингизни секин айлантиринг':'Юз сақланмоқда…');if(en.arr.length<S.samples)return;S.busy=true;const id=uuid();try{const r=await postAndWait('enroll',{id,requestId:id,action:'enroll',enrollmentCode:S.pending.code,samples:en.arr},70000);if(!r?.ok)throw new Error(r?.error||'ENROLL_FAILED');await stopCamera();show('resultView');$('#resultIcon').textContent='✓';$('#resultTitle').textContent='ЮЗ ТАЙЁР';$('#resultName').textContent=r.fullName||'';$('#resultPosition').textContent='';$('#resultType').textContent='';$('#resultTime').textContent='';$('#resultNote').textContent='Ходим рўйхатдан ўтди';S.pending=null;await cacheDelete(BOOT_CACHE_KEY);try{await bootstrap()}catch(e){console.warn('Face DB refresh after enrollment',e)}setTimeout(()=>idle(),1200)}catch(e){await fail('Рўйхатга олиш хатоси: '+friendly(e))}}
 
-async function loop(){if(!S.running)return;requestAnimationFrame(loop);if(S.busy||(loop.last&&performance.now()-loop.last<240))return;loop.last=performance.now();try{const r=await S.human.detect($('#video')),f=r?.face?.[0];if(!f){ring(0);return instruction(S.mode==='ENROLL'?(S.pending?.employee?.fullName||'Ходим'):(S.mode==='IN'?'КЕЛДИ':'КЕТДИ'),'Юзингизни рамка ичида ушланг')}if(S.mode==='ENROLL')await enroll(f);else await attendance(f)}catch(e){console.error(e)}}
+async function loop(){if(!S.running)return;requestAnimationFrame(loop);if(S.busy||(loop.last&&performance.now()-loop.last<240))return;loop.last=performance.now();try{const r=await S.human.detect($('#video')),faces=r?.face||[];if(faces.length>1){S.hit=null;S.hits=0;ring(0);return instruction('Фақат бир киши','Камера олдида фақат бир киши турсин')}const f=faces[0];if(!f){ring(0);return instruction(S.mode==='ENROLL'?(S.pending?.employee?.fullName||'Ходим'):(S.mode==='IN'?'КЕЛДИ':'КЕТДИ'),'Юзингизни рамка ичида ушланг')}if(S.mode==='ENROLL')await enroll(f);else await attendance(f)}catch(e){console.error(e)}}
 
-async function session(mode){if(S.running||S.busy)return;if(mode==='ENROLL'&&!S.pending)return toast('Рўйхатга олиш вазифаси йўқ');S.mode=mode;S.retryMode=mode;S.hit=null;S.hits=0;show('cameraView');document.querySelector('.camera-card').classList.toggle('enroll-mode',mode==='ENROLL');$('#faceScanner').className='face-scanner '+(mode==='ENROLL'?'enrolling':'recognizing');$('#enrollCounter').classList.toggle('hidden',mode!=='ENROLL');$('#modeBadge').textContent=mode==='IN'?'КЕЛДИ':mode==='OUT'?'КЕТДИ':'ЮЗНИ РЎЙХАТГА ОЛИШ';$('#enrollCounter').textContent=`0 / ${S.samples}`;instruction(mode==='ENROLL'?S.pending.employee.fullName:(mode==='IN'?'КЕЛДИ':'КЕТДИ'),'Камера тайёрланмоқда…');$('#cameraStatus').textContent='КАМЕРА ТАЙЁРЛАНМОҚДА…';ring(0);try{const cameraPromise=startCamera(),humanPromise=initHuman();await cameraPromise;$('#cameraStatus').textContent='ЮЗ МОДЕЛИ ТАЙЁРЛАНМОҚДА…';instruction(mode==='ENROLL'?S.pending.employee.fullName:(mode==='IN'?'КЕЛДИ':'КЕТДИ'),mode==='ENROLL'?'Бошингизни секин айлантиринг':'Камерага қаранг');await humanPromise;$('#cameraStatus').textContent='ТАЙЁР';S.running=true;loop.last=0;loop()}catch(e){console.error('camera/session',e);await stopCamera();S.busy=false;show('idleView');if(e?.message==='CAMERA_PERMISSION_DENIED'||e?.name==='NotAllowedError'||e?.name==='SecurityError')cameraHelp(mode,e);else toast('Камера очилмади: '+friendly(e),4500)}}
+async function session(mode){if(S.running||S.busy)return;if((mode==='IN'||mode==='OUT')&&!hasFaceDb())return toast('Face ID базасида фаол юз йўқ. Аввал ходим юзини рўйхатга олинг.',6000);if(mode==='ENROLL'&&!S.pending)return toast('Рўйхатга олиш вазифаси йўқ');S.mode=mode;S.retryMode=mode;S.hit=null;S.hits=0;show('cameraView');document.querySelector('.camera-card').classList.toggle('enroll-mode',mode==='ENROLL');$('#faceScanner').className='face-scanner '+(mode==='ENROLL'?'enrolling':'recognizing');$('#enrollCounter').classList.toggle('hidden',mode!=='ENROLL');$('#modeBadge').textContent=mode==='IN'?'КЕЛДИ':mode==='OUT'?'КЕТДИ':'ЮЗНИ РЎЙХАТГА ОЛИШ';$('#enrollCounter').textContent=`0 / ${S.samples}`;instruction(mode==='ENROLL'?S.pending.employee.fullName:(mode==='IN'?'КЕЛДИ':'КЕТДИ'),'Камера тайёрланмоқда…');$('#cameraStatus').textContent='КАМЕРА ТАЙЁРЛАНМОҚДА…';ring(0);try{const cameraPromise=startCamera(),humanPromise=initHuman();await cameraPromise;$('#cameraStatus').textContent='ЮЗ МОДЕЛИ ТАЙЁРЛАНМОҚДА…';instruction(mode==='ENROLL'?S.pending.employee.fullName:(mode==='IN'?'КЕЛДИ':'КЕТДИ'),mode==='ENROLL'?'Бошингизни секин айлантиринг':'Камерага қаранг');await humanPromise;$('#cameraStatus').textContent='ТАЙЁР';S.running=true;loop.last=0;loop()}catch(e){console.error('camera/session',e);await stopCamera();S.busy=false;show('idleView');if(e?.message==='CAMERA_PERMISSION_DENIED'||e?.name==='NotAllowedError'||e?.name==='SecurityError')cameraHelp(mode,e);else toast('Камера очилмади: '+friendly(e),4500)}}
 
-function service(){const q=qload().length,photoKb=S.perf.photoBytes?Math.round(S.perf.photoBytes/1024):0;$('#modalContent').innerHTML=`<h2>Сервис</h2><div class="service-grid"><div class="service-stat"><span>Версия</span><b>${VERSION}</b></div><div class="service-stat"><span>Юзли ходимлар</span><b>${S.employees.size}</b></div><div class="service-stat"><span>Кэш</span><b>${S.bootCacheUsed?'ТЕЗ':'ЯНГИ'}</b></div><div class="service-stat"><span>Офлайн навбат</span><b>${q}</b></div><div class="service-stat"><span>База</span><b>${S.perf.bootstrapMs||0} ms</b></div><div class="service-stat"><span>Face AI</span><b>${S.perf.humanMs||0} ms</b></div><div class="service-stat"><span>Камера</span><b>${S.perf.cameraMs||0} ms</b></div><div class="service-stat"><span>Local ACK</span><b>${S.perf.localAckMs||0} ms</b></div><div class="service-stat"><span>Фото</span><b>${S.perf.photoMs||0} ms / ${photoKb} KB</b></div><div class="service-stat"><span>Сақлаш</span><b>${S.perf.saveMs||0} ms</b></div><div class="service-stat"><span>Polls</span><b>${S.perf.polls||0}</b></div></div><button id="reload" class="secondary-btn">Базани янгилаш</button>`;$('#modal').classList.remove('hidden');$('#reload').onclick=()=>bootstrap().then(()=>toast('База янгиланди')).catch(e=>toast(friendly(e)))}
+async function service(){const q=await queueCount(),dead=await deadCount(),photoKb=S.perf.photoBytes?Math.round(S.perf.photoBytes/1024):0;$('#modalContent').innerHTML=`<h2>Сервис</h2><div class="service-grid"><div class="service-stat"><span>Версия</span><b>${VERSION}</b></div><div class="service-stat"><span>Юзли ходимлар</span><b>${S.employees.size}</b></div><div class="service-stat"><span>Кэш</span><b>${S.bootCacheUsed?'ТЕЗ':'ЯНГИ'}</b></div><div class="service-stat"><span>Офлайн навбат</span><b>${q}</b></div><div class="service-stat"><span>Хатолар навбати</span><b>${dead}</b></div><div class="service-stat"><span>База</span><b>${S.perf.bootstrapMs||0} ms</b></div><div class="service-stat"><span>Face AI</span><b>${S.perf.humanMs||0} ms</b></div><div class="service-stat"><span>Камера</span><b>${S.perf.cameraMs||0} ms</b></div><div class="service-stat"><span>Local ACK</span><b>${S.perf.localAckMs||0} ms</b></div><div class="service-stat"><span>Фото</span><b>${S.perf.photoMs||0} ms / ${photoKb} KB</b></div><div class="service-stat"><span>Сақлаш</span><b>${S.perf.saveMs||0} ms</b></div><div class="service-stat"><span>Polls</span><b>${S.perf.polls||0}</b></div></div><button id="reload" class="secondary-btn">Базани янгилаш</button>`;$('#modal').classList.remove('hidden');$('#reload').onclick=()=>bootstrap().then(()=>toast('База янгиланди')).catch(e=>toast(friendly(e)))}
 
-async function boot(){const lp=launchParams();try{updateVersion();importLaunchConfig();S.cfg=loadCfg();if(!validCfg(S.cfg))throw new Error('CONFIG_REQUIRED');if(window.__DAVOMAT_EMBEDDED__&&lp.purpose!=='enroll'){show('idleView');scheduleHumanLibPreload();return}show('loadingView');scheduleHumanLibPreload();if(lp.purpose==='enroll'){if(!lp.enroll)throw new Error('ENROLLMENT_CODE_NOT_FOUND');$('#loadingTitle').textContent='Рўйхатга олиш тайёрланмоқда…';$('#loadingDetail').textContent='Ходим маълумоти олинмоқда';await loadEnrollment(lp.enroll);S.samples=6;show('idleView');renderPending();return}const cached=await restoreBootstrapCache();if(cached){show('idleView');setTimeout(()=>bootstrap().catch(e=>console.warn('bootstrap refresh',e)),700)}else{$('#loadingDetail').textContent='Ходимлар маълумоти олинмоқда';await bootstrap();show('idleView')}setTimeout(()=>syncQueue(),1800);setTimeout(()=>pending(),2600);S.pollTimer=setInterval(()=>pending(),45000)}catch(e){console.error(e);await stopCamera();show('setupView');$('#setupError').textContent='Терминал очилмади.';$('#setupDetail').textContent=friendly(e)}}
+async function boot(){const lp=launchParams();try{updateVersion();importLaunchConfig();S.cfg=loadCfg();if(!validCfg(S.cfg))throw new Error('CONFIG_REQUIRED');await migrateLegacyQueue();if(window.__DAVOMAT_EMBEDDED__&&lp.purpose!=='enroll'){show('idleView');scheduleHumanLibPreload();return}show('loadingView');scheduleHumanLibPreload();if(lp.purpose==='enroll'){if(!lp.enroll)throw new Error('ENROLLMENT_CODE_NOT_FOUND');$('#loadingTitle').textContent='Рўйхатга олиш тайёрланмоқда…';$('#loadingDetail').textContent='Ходим маълумоти олинмоқда';await loadEnrollment(lp.enroll);S.samples=6;show('idleView');renderPending();return}const cached=await restoreBootstrapCache();if(cached){show('idleView');setTimeout(()=>bootstrap().catch(e=>console.warn('bootstrap refresh',e)),700)}else{$('#loadingDetail').textContent='Ходимлар маълумоти олинмоқда';await bootstrap();show('idleView')}setTimeout(()=>syncQueue(),1800);setTimeout(()=>pending(),2600);S.pollTimer=setInterval(()=>pending(),45000)}catch(e){console.error(e);await stopCamera();show('setupView');$('#setupError').textContent='Терминал очилмади.';$('#setupDetail').textContent=friendly(e)}}
 function clock(){const n=new Date();$('#idleClock').textContent=ttime(n);$('#idleDate').textContent=tdate(n)}
 
 ticks();clock();setInterval(clock,1000);net();updateVersion();
 window.addEventListener('online',()=>{net();setTimeout(()=>syncQueue(),500);setTimeout(()=>bootstrap().catch(()=>{}),1200)});window.addEventListener('offline',net);
 $('#retrySetupBtn').onclick=()=>location.reload();$('#inBtn').onclick=()=>session('IN');$('#outBtn').onclick=()=>session('OUT');$('#startEnrollBtn').onclick=()=>session('ENROLL');$('#cancelCameraBtn').onclick=idle;$('#adminBtn').onclick=service;$('#modalClose').onclick=()=>$('#modal').classList.add('hidden');$('#modal').onclick=e=>{if(e.target===$('#modal'))$('#modal').classList.add('hidden')};
-if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js?v=1.4.0').catch(()=>{});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js?v=1.5.0-prod-20260918-1',{updateViaCache:'none'}).then(r=>r.update().catch(()=>{})).catch(()=>{});
 boot();
 })();
