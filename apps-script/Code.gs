@@ -347,6 +347,9 @@ function migrateSecrets_() {
       setSetting_('DEVICE_TOKEN','MOVED_TO_SCRIPT_PROPERTIES','Device token Script Properties да.');
     }
   }
+  if (String(getSetting_('REQUIRE_ACTIVE_LIVENESS','false')).toLowerCase() !== 'true') {
+    setSetting_('REQUIRE_ACTIVE_LIVENESS','true','Active blink + passive liveness/antispoof required');
+  }
 }
 
 function createAdminSession_() {
@@ -770,7 +773,7 @@ function processAttendanceEventUnlocked_(payload) {
   var matchScore = toNumber_(payload.matchScore,0), liveScore = toNumber_(payload.livenessScore,0), realScore = toNumber_(payload.realScore,0);
   var blinkOk = payload.blinkOk === true || String(payload.blinkOk) === 'true';
   var minMatch=toNumber_(getSetting_('FACE_MATCH_THRESHOLD',0.62),0.62), minLive=toNumber_(getSetting_('LIVENESS_THRESHOLD',0.55),0.55), minReal=toNumber_(getSetting_('REALNESS_THRESHOLD',0.55),0.55);
-  var requireActive=String(getSetting_('REQUIRE_ACTIVE_LIVENESS','false')).toLowerCase()==='true';
+  var requireActive=String(getSetting_('REQUIRE_ACTIVE_LIVENESS','true')).toLowerCase()==='true';
   if (matchScore<minMatch || liveScore<minLive || realScore<minReal || (requireActive&&!blinkOk)) { appendRejectedEvent_(payload,'FACE_PROOF_LOW',eventAt,dateKey,matchScore,liveScore,realScore,blinkOk); return {ok:false,status:'rejected',eventId:eventId,reason:'FACE_PROOF_LOW'}; }
   var next=getNextEventType_(employeeId,dateKey,eventAt);
   var requested=String(payload.requestedEventType || payload.clientSuggestedType || '').toUpperCase();
@@ -1630,7 +1633,7 @@ function terminalApiGet_(params) {
         matchThreshold:toNumber_(getSetting_('FACE_MATCH_THRESHOLD',0.62),0.62),
         livenessThreshold:toNumber_(getSetting_('LIVENESS_THRESHOLD',0.55),0.55),
         realnessThreshold:toNumber_(getSetting_('REALNESS_THRESHOLD',0.55),0.55),
-        requireActiveLiveness:String(getSetting_('REQUIRE_ACTIVE_LIVENESS','false')).toLowerCase()==='true',
+        requireActiveLiveness:String(getSetting_('REQUIRE_ACTIVE_LIVENESS','true')).toLowerCase()==='true',
         enrollSampleCount:toNumber_(getSetting_('ENROLL_SAMPLE_COUNT',7),7),
         minEventGapMinutes:toNumber_(getSetting_('MIN_EVENT_GAP_MINUTES',2),2)
       },
@@ -1775,7 +1778,15 @@ function saveEnrollmentPayload_(payload) {
   if (!employee) throw new Error('EMPLOYEE_NOT_FOUND');
   var samples = Array.isArray(payload.samples) ? payload.samples : [];
   if (samples.length < 6 || samples.length > 20) throw new Error('ENROLLMENT_SAMPLE_COUNT');
-  var valid = samples.filter(function(s){ return Array.isArray(s.embedding) && s.embedding.length >= 128; });
+  var requireActive = String(getSetting_('REQUIRE_ACTIVE_LIVENESS','true')).toLowerCase() === 'true';
+  var blinkOk = payload.blinkOk === true || String(payload.blinkOk) === 'true';
+  if (requireActive && !blinkOk) throw new Error('ENROLLMENT_LIVENESS_REQUIRED');
+  var minLive = toNumber_(getSetting_('LIVENESS_THRESHOLD',0.55),0.55);
+  var minReal = toNumber_(getSetting_('REALNESS_THRESHOLD',0.55),0.55);
+  var valid = samples.filter(function(s){
+    return Array.isArray(s.embedding) && s.embedding.length >= 128 &&
+      toNumber_(s.liveness,0) >= minLive && toNumber_(s.real,0) >= minReal;
+  });
   if (valid.length < 6) throw new Error('ENROLLMENT_EMBEDDINGS_INVALID');
 
   var existing = findAll_(DAVOMAT.SHEETS.FACE_PROFILES, function(r){ return String(r.EMPLOYEE_ID) === String(employee.EMPLOYEE_ID) && normalizeBool_(r.ACTIVE); });
