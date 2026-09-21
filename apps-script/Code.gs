@@ -167,7 +167,9 @@ function ensureSchemaCurrent_(force) {
 }
 
 function migrateDavomatSchema() {
-  return ensureSchemaCurrent_(true);
+  var result = ensureSchemaCurrent_(true);
+  photoFolderId_();
+  return result;
 }
 
 function rowsAsObjects_(sheetName) {
@@ -224,6 +226,21 @@ function setSetting_(key, value, note) {
   var now = nowIso_();
   if (found) updateRowObject_(DAVOMAT.SHEETS.SETTINGS, found._row, {VALUE: value, NOTE: note || found.NOTE, UPDATED_AT: now});
   else appendObject_(DAVOMAT.SHEETS.SETTINGS, {KEY: key, VALUE: value, NOTE: note || '', UPDATED_AT: now});
+}
+
+/**
+ * SETTINGS is the production source of truth for the photo folder.
+ * Keep Script Properties synchronized so legacy code paths cannot write photos
+ * back into an obsolete folder after a migration.
+ */
+function photoFolderId_() {
+  var configured = String(getSetting_('PHOTO_FOLDER_ID','') || '').trim();
+  var props = PropertiesService.getScriptProperties();
+  if (configured) {
+    if (String(props.getProperty('PHOTO_FOLDER_ID') || '') !== configured) props.setProperty('PHOTO_FOLDER_ID', configured);
+    return configured;
+  }
+  return String(props.getProperty('PHOTO_FOLDER_ID') || '').trim();
 }
 
 function toNumber_(v, fallback) {
@@ -900,7 +917,7 @@ function saveControlPhoto_(dataUrl, employeeId, eventType, eventId) {
   var ext = m[1] === 'png' ? 'png' : 'jpg';
   var bytes = Utilities.base64Decode(m[2]);
   if (bytes.length > 2.5 * 1024 * 1024) throw new Error('PHOTO_TOO_LARGE');
-  var folderId = PropertiesService.getScriptProperties().getProperty('PHOTO_FOLDER_ID') || String(getSetting_('PHOTO_FOLDER_ID',''));
+  var folderId = photoFolderId_();
   if (!folderId) throw new Error('PHOTO_FOLDER_NOT_CONFIGURED');
   var folder = DriveApp.getFolderById(folderId);
   var name = [today_(), employeeId, eventType, eventId].join('_') + '.' + ext;
@@ -1813,7 +1830,7 @@ function runDavomatSmokeTests() {
   }
   check('Spreadsheet configured', function(){ return getSpreadsheet_().getId(); });
   Object.keys(DAVOMAT.HEADERS).forEach(function(k){ check('Sheet '+DAVOMAT.SHEETS[k], function(){ return getSheet_(DAVOMAT.SHEETS[k]).getName(); }); });
-  check('Photo folder', function(){ var id=PropertiesService.getScriptProperties().getProperty('PHOTO_FOLDER_ID'); return DriveApp.getFolderById(id).getName(); });
+  check('Photo folder', function(){ var id=photoFolderId_(); if(!id)throw new Error('missing'); var configured=String(getSetting_('PHOTO_FOLDER_ID','')||'').trim(); if(configured && id!==configured)throw new Error('folder id mismatch'); return DriveApp.getFolderById(id).getName(); });
   check('Default schedule', function(){ var s=getScheduleById_('SCH-DEFAULT'); if(!s)throw new Error('missing'); return s.NAME; });
   check('Device token', function(){ var id=String(getSetting_('DEVICE_ID','')); var token=getSecret_(deviceSecretKey_(id)); if(!id||!token)throw new Error('missing'); if(!verifyDeviceToken_(id,token))throw new Error('invalid'); return id; });
   check('Schedule Friday off', function(){ var s=getScheduleById_('SCH-DEFAULT'); var friday='2026-09-18'; var d=scheduleForDate_(s,friday); if(d.isWorkday)throw new Error('Friday must be off in default schedule'); return 'off'; });
