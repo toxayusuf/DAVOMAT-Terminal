@@ -5,7 +5,7 @@
 var DAVOMAT = Object.freeze({
   VERSION: '1.5.0',
   SPREADSHEET_ID: '10cfEysZsk1SktidqPYpFylIJwfGynaVwj-hQ5pEDWh4',
-  PUBLIC_WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbwSHS3Vk1DPHj_3NIWr5xuBN81mM2VGI5aodzaOFjK1tjeTc-9i7PyeUoB8-gClQUjxAw/exec',
+  PUBLIC_WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbwSHS3Vk1DPHj_3NIWr5xuBN81mM2VGl5aodzaOFjK1tjeTc-9i7PyeUoB8-gClQUjxAw/exec',
   TZ: 'Asia/Tashkent',
   PHOTO_FOLDER_NAME: 'DAVOMAT_CONTROL_PHOTOS',
   SESSION_TTL_SECONDS: 21600,
