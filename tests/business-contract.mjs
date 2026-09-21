@@ -49,6 +49,14 @@ assert.equal(low.ok,false);
 assert.equal(low.reason,'FACE_PROOF_LOW');
 assert.equal(rejected,1);
 
+ctx.findAll_=(sheet,pred)=>sheet===ctx.DAVOMAT.SHEETS.ATTENDANCE_EVENTS?[{EVENT_TYPE:'IN',EVENT_AT:'2026-09-21T09:31:16+05:00',EMPLOYEE_ID:'E1',STATUS:'ACCEPTED',EVENT_DATE:'2026-09-21'}].filter(pred):[];
+ctx.getSetting_=(k,f)=>k==='MIN_EVENT_GAP_MINUTES'?2:f;
+let nextRapid=ctx.getNextEventType_('E1','2026-09-21',new Date('2026-09-21T09:31:30+05:00'),'OUT');
+assert.equal(nextRapid.type,'OUT','rapid opposite OUT must be allowed after IN');
+let repeatRapid=ctx.getNextEventType_('E1','2026-09-21',new Date('2026-09-21T09:31:30+05:00'),'IN');
+assert.equal(repeatRapid.type,null,'rapid repeated IN must be blocked');
+assert.equal(repeatRapid.reason,'ALREADY_MARKED');
+
 ctx.getEmployeeById_=()=>({EMPLOYEE_ID:'E1',SCHEDULE_ID:'S1'});
 ctx.getScheduleById_=()=>({SCHEDULE_ID:'S1'});
 ctx.scheduleForDate_=()=>({isWorkday:true,start:new Date('2026-09-18T09:00:00+05:00'),end:new Date('2026-09-18T18:00:00+05:00'),lunchStart:new Date('2026-09-18T13:00:00+05:00'),lunchEnd:new Date('2026-09-18T14:00:00+05:00'),graceMinutes:10});
