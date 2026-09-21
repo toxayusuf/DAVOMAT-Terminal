@@ -6,54 +6,64 @@ Updated: 2026-09-21 (Asia/Tashkent)
 
 - Frontend / Face Terminal: **v1.5.0**
 - Production branch: `main`
-- Production commit: `2bd2cce603edfd704167cf745d1062bf88b75de2`
-- GitHub Pages CI: **PASS**, run `35557403242`
-- DAVOMAT CI: **PASS**, run `35557403243`
+- Current production source commit: `40645c21b1bc56a4a3a57c7f13208af28cd917ae`
+- DAVOMAT CI: **PASS**, run `35580082583`
+- GitHub Pages: **PASS**, run `35580082537`
 - Production terminal: `https://toxayusuf.github.io/DAVOMAT-Terminal/`
-- Apps Script production URL: `https://script.google.com/macros/s/AKfycbwSHS3Vk1DPHj_3NIWr5xuBN81mM2VGI5aodzaOFjK1tjeTc-9i7PyeUoB8-gClQUjxAw/exec`
-- Apps Script source in repository: **v1.5.0 candidate**
-- Live Apps Script deployment version: **NOT VERIFIED / NOT DEPLOYED BY CURRENT CONNECTOR**
-- Google Sheets production ID: `10cfEysZsk1SktidqPYpFylIJwfGynaVwj-hQ5pEDWh4`
-- Production photo folder ID: `1pLiHLTKCVZN2X0N3AIZ6RORMS2kZE6p0`
-- Restore branch: `restore/pre-production-audit-2026-09-17` at `81d34ab765fb0f08ca3206e37b21b1c52dea7597`
-- Sheets backup: `DAVOMAT_BACKUP_PRE_PRODUCTION_2026-09-17_1140`
+- Apps Script Script ID: `1r529SSFauYTyu0E5ztLuff7_bS8aotq8F00kIIlj8NGFuA3I7l7vnKkF`
+- Apps Script deployment ID: `AKfycbwSHS3Vk1DPHj_3NIWr5xuBN81mM2VGl5aodzaOFjK1tjeTc-9i7PyeUoB8-gClQUjxAw`
+- Apps Script production version: **@32**
+- Apps Script health: **PASS** — `{"ok":true,"service":"DAVOMAT","version":"1.5.0"}`
+- Production Sheet ID: `10cfEysZsk1SktidqPYpFylIJwfGynaVwj-hQ5pEDWh4`
+- Photo folder ID: `1pLiHLTKCVZN2X0N3AIZ6RORMS2kZE6p0`
+- Restore branch: `restore/pre-production-audit-2026-09-17` @ `81d34ab765fb0f08ca3206e37b21b1c52dea7597`
+- Independent Sheet backup: `DAVOMAT_BACKUP_PRE_PRODUCTION_2026-09-17_1140`
+- Pre-deploy Apps Script backup artifact: run `35580111990`, artifact `10629184659` (retained 30 days)
 
-## Confirmed working / verified
+## 2026-09-21 backend rollout
 
-- main is fast-forwarded from the tested hardening branch.
-- GitHub Pages deployment artifact contains v1.5.0 `index.html`, `app.js`, `sw.js`.
-- Production artifact does not include legacy runtime `top-level-fix.js`, `face-db-fix.js`, `permission-helper.js`.
-- Service Worker uses unique build `1.5.0-prod-20260918-1`.
-- Navigation is network-first; shell assets are versioned.
-- Offline attendance queue is IndexedDB v2 with retry counter, exponential backoff and dead-letter store.
-- Face DB bootstrap cache age is limited to 24 hours online.
-- Face recognition requires 3 consecutive matches.
-- Multi-face frame is blocked.
-- Active blink liveness is implemented in frontend and `REQUIRE_ACTIVE_LIVENESS=true` is set in production SETTINGS.
-- One active employee is READY and six active face profiles exist.
-- `terminal-01` is active.
-- Google Sheets timezone is `Asia/Tashkent`.
-- All 13 production sheet headers match `DAVOMAT.HEADERS` exactly.
-- Production spreadsheet, photo folder and pre-production backup are not broadly shared.
-- Photo retention setting is 60 days.
+APR-002 was approved and executed.
 
-## Not yet verified in live production
+Guarded rollout sequence:
+1. Exact Script ID supplied by owner.
+2. Existing deployment was verified before write.
+3. Current Apps Script source was backed up.
+4. Repository source was syntax-checked.
+5. Source was pushed to the existing Apps Script project.
+6. Existing deployment was updated; no replacement URL/project/Sheet was created.
+7. A temporary @31 rollout exposed a missing `webapp` block in repository `appsscript.json`, causing public 404.
+8. Version 30 manifest was inspected and proved the required web-app configuration:
+   - `executeAs: USER_DEPLOYING`
+   - `access: ANYONE_ANONYMOUS`
+9. Repository source was fixed in commit `40645c21...`.
+10. Existing production deployment was updated again to **@32**.
+11. Public health returned DAVOMAT v1.5.0 successfully.
 
-1. **Apps Script v1.5.0 deployment**: repository source is ready, but the current tools cannot replace/deploy the bound Apps Script project.
-2. **Physical Face ID E2E after v1.5 rollout**: requires a real camera and a user in front of the terminal.
-3. **Spoof test against printed/photo-on-phone image**: requires physical test.
-4. **Telegram**: production bot token/chat ID are not configured.
-5. **Real offline → online physical terminal sync**: logic/CI contract is verified; physical browser flow has not been executed after v1.5.
-6. **Real performance P50/P95**: cannot be measured without the production camera/browser/network path.
-7. **Admin v1.5 live UI**: source is complete in `apps-script/Admin.html`, but requires Apps Script deployment.
+## Verified
 
-## Last live-data observation
+- Current `main` CI and Pages are green.
+- Apps Script source is v1.5.0.
+- Web-app manifest is preserved in source control.
+- Existing permanent deployment URL is preserved.
+- Production health endpoint returns v1.5.0.
+- Current source already guards invalid schedule time values before `.getTime()`.
+- Offline queue / idempotency / post-commit architecture remains in v1.5 source.
+- Active blink + passive liveness remain enabled in source/settings.
 
-- Last inspected attendance events are from 2026-09-17, before v1.5 active blink rollout.
-- No post-v1.5 physical attendance event was available to prove camera → blink → attendance → photo → summary E2E.
+## Still not physically verified
+
+1. Registration/enrollment with a real camera.
+2. Face ID IN/OUT with a real employee.
+3. Offline → online queue on the actual terminal browser.
+4. Unknown/disabled user behavior.
+5. Printed-photo / phone-screen spoof test.
+6. Clean-session admin login in a normal user browser.
+7. Real P50/P95 camera/network performance.
+
+## Note about clasp execution smoke
+
+Authenticated `clasp run migrateDavomatSchema` and `runDavomatSmokeTests` return an Apps Script storage `NOT_FOUND` exception when invoked through the Execution API, even though the deployed web app itself answers health successfully. Do not treat the clasp wrapper exit code as a passed smoke test. Production runtime verification must use the web-app path plus physical E2E.
 
 ## Next action
 
-Deploy repository `apps-script/Code.gs`, `apps-script/Admin.html`, and `apps-script/appsscript.json` to the existing Apps Script project as a **new version of the existing web-app deployment URL**, then run the production acceptance matrix in `TEST_REPORT.md`.
-
-Do not create a new spreadsheet and do not run `setupDavomat()` against production.
+Run the physical acceptance matrix from `TEST_REPORT.md` on the actual webcam/terminal path. Do not create a new deployment URL or production Sheet.
