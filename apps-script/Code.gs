@@ -746,14 +746,21 @@ function rebuildEmployeeDay_(employeeId, dateKey, finalize) {
   return upsertDaily_(buildDaySummary_(employeeId, dateKey, !!finalize));
 }
 
-function getNextEventType_(employeeId, dateKey, eventAt) {
+function getNextEventType_(employeeId, dateKey, eventAt, requestedType) {
   var events = acceptedEventsForEmployeeDate_(employeeId, dateKey);
   if (!events.length) return {type:'IN', reason:''};
   var last = events[events.length - 1];
+  var lastType = String(last.EVENT_TYPE || '').toUpperCase();
+  var expected = lastType === 'IN' ? 'OUT' : 'IN';
+  var requested = String(requestedType || '').toUpperCase();
   var lastAt = last.EVENT_AT instanceof Date ? last.EVENT_AT : new Date(last.EVENT_AT);
   var gapMin = toNumber_(getSetting_('MIN_EVENT_GAP_MINUTES',2),2);
-  if (eventAt && !isNaN(lastAt.getTime()) && eventAt.getTime() - lastAt.getTime() < gapMin * 60000) return {type:null, reason:'ALREADY_MARKED'};
-  return {type:String(last.EVENT_TYPE) === 'IN' ? 'OUT' : 'IN', reason:''};
+  // The short anti-double-tap gap must block only repeating the SAME mark.
+  // The legitimate opposite mark (IN -> OUT or OUT -> IN) is allowed immediately.
+  if (requested && requested === lastType && eventAt && !isNaN(lastAt.getTime()) && eventAt.getTime() - lastAt.getTime() < gapMin * 60000) {
+    return {type:null, reason:'ALREADY_MARKED', expectedType:expected};
+  }
+  return {type:expected, reason:''};
 }
 function validateEventTime_(clientTime) {
   var d = new Date(clientTime || '');
@@ -798,8 +805,8 @@ function processAttendanceEventUnlocked_(payload) {
   var minMatch=toNumber_(getSetting_('FACE_MATCH_THRESHOLD',0.62),0.62), minLive=toNumber_(getSetting_('LIVENESS_THRESHOLD',0.55),0.55), minReal=toNumber_(getSetting_('REALNESS_THRESHOLD',0.55),0.55);
   var requireActive=String(getSetting_('REQUIRE_ACTIVE_LIVENESS','true')).toLowerCase()==='true';
   if (matchScore<minMatch || liveScore<minLive || realScore<minReal || (requireActive&&!blinkOk)) { appendRejectedEvent_(payload,'FACE_PROOF_LOW',eventAt,dateKey,matchScore,liveScore,realScore,blinkOk); return {ok:false,status:'rejected',eventId:eventId,reason:'FACE_PROOF_LOW'}; }
-  var next=getNextEventType_(employeeId,dateKey,eventAt);
   var requested=String(payload.requestedEventType || payload.clientSuggestedType || '').toUpperCase();
+  var next=getNextEventType_(employeeId,dateKey,eventAt,requested);
   if (requested && ['IN','OUT'].indexOf(requested)<0) { appendRejectedEvent_(payload,'EVENT_TYPE_INVALID',eventAt,dateKey,matchScore,liveScore,realScore,blinkOk); return {ok:false,status:'rejected',eventId:eventId,reason:'EVENT_TYPE_INVALID'}; }
   if (!next.type) { appendRejectedEvent_(payload,next.reason,eventAt,dateKey,matchScore,liveScore,realScore,blinkOk); return {ok:false,status:'rejected',eventId:eventId,reason:next.reason}; }
   if (requested && requested!==next.type) { appendRejectedEvent_(payload,'EVENT_TYPE_MISMATCH',eventAt,dateKey,matchScore,liveScore,realScore,blinkOk); return {ok:false,status:'rejected',eventId:eventId,reason:'EVENT_TYPE_MISMATCH',expectedType:next.type}; }
@@ -1841,6 +1848,7 @@ function runDavomatSmokeTests() {
   check('Schedule Friday off', function(){ var s=getScheduleById_('SCH-DEFAULT'); var friday='2026-09-18'; var d=scheduleForDate_(s,friday); if(d.isWorkday)throw new Error('Friday must be off in default schedule'); return 'off'; });
   check('Schedule Monday work', function(){ var s=getScheduleById_('SCH-DEFAULT'); var monday='2026-09-14'; var d=scheduleForDate_(s,monday); if(!d.isWorkday)throw new Error('Monday must be workday'); return formatDateTime_(d.start)+'..'+formatDateTime_(d.end); });
   check('Date helper previous day', function(){ var prev=previousDateKey_('2026-09-21'); if(prev!=='2026-09-20')throw new Error('expected 2026-09-20, got '+prev); return prev; });
+  check('Rapid opposite attendance mark', function(){ var original=acceptedEventsForEmployeeDate_; try { acceptedEventsForEmployeeDate_=function(){return [{EVENT_TYPE:'IN',EVENT_AT:'2026-09-21T09:31:16+05:00'}];}; var n=getNextEventType_('TEST','2026-09-21',new Date('2026-09-21T09:31:30+05:00'),'OUT'); if(n.type!=='OUT')throw new Error('OUT blocked after IN'); return 'IN->OUT allowed'; } finally { acceptedEventsForEmployeeDate_=original; } });
   check('Schema headers current', function(){ Object.keys(DAVOMAT.HEADERS).forEach(function(k){ var sh=getSheet_(DAVOMAT.SHEETS[k]); var got=sh.getRange(1,1,1,DAVOMAT.HEADERS[k].length).getValues()[0].map(String); if(JSON.stringify(got)!==JSON.stringify(DAVOMAT.HEADERS[k])) throw new Error('headers '+DAVOMAT.SHEETS[k]); }); return 'ok'; });
   var failed = checks.filter(function(x){return !x.ok;});
   var result = {ok:failed.length===0,checks:checks,failed:failed.length,time:nowIso_()};
