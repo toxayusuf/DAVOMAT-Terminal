@@ -258,7 +258,9 @@ function formatDateTime_(dateLike) {
   return Utilities.formatDate(d, DAVOMAT.TZ, 'yyyy-MM-dd HH:mm:ss');
 }
 
-function dateKeyFromDate_(d) {
+function dateKeyFromDate_(dateLike) {
+  var d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (isNaN(d.getTime())) throw new Error('DATE_INVALID');
   return Utilities.formatDate(d, DAVOMAT.TZ, 'yyyy-MM-dd');
 }
 
@@ -595,7 +597,11 @@ function hasScheduleTime_(value) {
 }
 
 function addDays_(date, days) { return date ? new Date(date.getTime() + Number(days || 0) * 86400000) : null; }
-function previousDateKey_(dateKey) { return dateKeyFromDate_(new Date(String(dateKey) + 'T12:00:00+05:00').getTime() - 86400000); }
+function previousDateKey_(dateKey) {
+  var base = new Date(String(dateKey) + 'T12:00:00+05:00');
+  if (isNaN(base.getTime())) throw new Error('DATE_INVALID');
+  return dateKeyFromDate_(new Date(base.getTime() - 86400000));
+}
 
 function scheduleForDate_(scheduleRow, dateKey) {
   if (!scheduleRow) throw new Error('SCHEDULE_NOT_FOUND');
@@ -1834,6 +1840,7 @@ function runDavomatSmokeTests() {
   check('Device token', function(){ var id=String(getSetting_('DEVICE_ID','')); var token=getSecret_(deviceSecretKey_(id)); if(!id||!token)throw new Error('missing'); if(!verifyDeviceToken_(id,token))throw new Error('invalid'); return id; });
   check('Schedule Friday off', function(){ var s=getScheduleById_('SCH-DEFAULT'); var friday='2026-09-18'; var d=scheduleForDate_(s,friday); if(d.isWorkday)throw new Error('Friday must be off in default schedule'); return 'off'; });
   check('Schedule Monday work', function(){ var s=getScheduleById_('SCH-DEFAULT'); var monday='2026-09-14'; var d=scheduleForDate_(s,monday); if(!d.isWorkday)throw new Error('Monday must be workday'); return formatDateTime_(d.start)+'..'+formatDateTime_(d.end); });
+  check('Date helper previous day', function(){ var prev=previousDateKey_('2026-09-21'); if(prev!=='2026-09-20')throw new Error('expected 2026-09-20, got '+prev); return prev; });
   check('Schema headers current', function(){ Object.keys(DAVOMAT.HEADERS).forEach(function(k){ var sh=getSheet_(DAVOMAT.SHEETS[k]); var got=sh.getRange(1,1,1,DAVOMAT.HEADERS[k].length).getValues()[0].map(String); if(JSON.stringify(got)!==JSON.stringify(DAVOMAT.HEADERS[k])) throw new Error('headers '+DAVOMAT.SHEETS[k]); }); return 'ok'; });
   var failed = checks.filter(function(x){return !x.ok;});
   var result = {ok:failed.length===0,checks:checks,failed:failed.length,time:nowIso_()};
