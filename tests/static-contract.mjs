@@ -11,8 +11,10 @@ new Function(code);
 
 assert.equal((index.match(/app\.js/g)||[]).length,1,'index must load exactly one app.js');
 assert(!/top-level-fix|face-db-fix/.test(index),'legacy hotfix runtime must not be referenced');
-assert(index.includes('1.5.0-prod-20260918-1'),'index build id mismatch');
-assert(sw.includes("VERSION='1.5.0-prod-20260918-1'"),'SW build id mismatch');
+assert(index.includes('davomat-shell-migrated-v150-20260921'),'legacy service-worker migration guard missing');
+assert(index.includes('/^davomat-shell-v1\\.4/'),'legacy v1.4 shell cache cleanup missing');
+assert(index.includes('1.5.0-prod-20260921-2'),'index build id mismatch');
+assert(sw.includes("VERSION='1.5.0-prod-20260921-2'"),'SW build id mismatch');
 assert(sw.includes("fetch(event.request,{cache:'no-store'})"),'navigation must be network-first/no-store');
 assert(!sw.includes('top-level-fix.js')&&!sw.includes('face-db-fix.js'),'SW must not cache dead hotfixes');
 
@@ -51,4 +53,4 @@ assert(!admin.includes('кейинги қадамда'),'unfinished UI placehold
 assert(!admin.includes('cfgDeviceToken'),'device secret must not render in admin');
 
 console.log('STATIC CONTRACT PASS');
-console.log(JSON.stringify({gasMethods:gasMethods.length,build:'1.5.0-prod-20260918-1'},null,2));
+console.log(JSON.stringify({gasMethods:gasMethods.length,build:'1.5.0-prod-20260921-2'},null,2));
