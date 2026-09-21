@@ -10,8 +10,8 @@
   <title>DAVOMAT — Юз терминали</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="manifest" href="manifest.webmanifest?v=1.5.0-prod-20260918-1">
-  <link rel="stylesheet" href="styles.css?v=1.5.0-prod-20260918-1">
+  <link rel="manifest" href="manifest.webmanifest?v=1.5.0-prod-20260921-2">
+  <link rel="stylesheet" href="styles.css?v=1.5.0-prod-20260921-2">
 </head>
 <body>
   <main class="terminal-shell">
@@ -32,5 +32,26 @@
     <section id="resultView" class="result-view hidden"><div id="resultIcon" class="result-icon">✓</div><h1 id="resultTitle">МУВАФФАҚИЯТЛИ</h1><h2 id="resultName"></h2><p id="resultPosition"></p><div id="resultType" class="result-type">КЕЛДИ</div><div id="resultTime" class="result-time">08:50</div><p id="resultNote">Белги сақланди</p></section>
   </main>
   <div id="modal" class="modal hidden"><div class="modal-card"><button id="modalClose" class="modal-x">×</button><div id="modalContent"></div></div></div><div id="toast" class="toast hidden"></div>
-  <script src="app.js?v=1.5.0-prod-20260918-1" defer></script>
+  <script>
+  (function(){
+    var marker='davomat-shell-migrated-v150-20260921';
+    if(localStorage.getItem(marker)) return;
+    if(!('serviceWorker' in navigator)){ try{localStorage.setItem(marker,'1');}catch(e){} return; }
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      var legacy=regs.some(function(r){
+        var u=(r.active&&r.active.scriptURL)||(r.waiting&&r.waiting.scriptURL)||(r.installing&&r.installing.scriptURL)||'';
+        return /sw\.js\?v=1\.4/.test(u);
+      });
+      if(!legacy){ try{localStorage.setItem(marker,'1');}catch(e){} return; }
+      return Promise.all(regs.map(function(r){return r.unregister();}))
+        .then(function(){return caches.keys();})
+        .then(function(keys){return Promise.all(keys.filter(function(k){return /^davomat-shell-v1\.4/.test(k);}).map(function(k){return caches.delete(k);}));})
+        .then(function(){
+          try{localStorage.setItem(marker,'1');}catch(e){}
+          var u=new URL(location.href);u.searchParams.set('_davomat_build','150_20260921');location.replace(u.toString());
+        });
+    }).catch(function(){});
+  })();
+  </script>
+  <script src="app.js?v=1.5.0-prod-20260921-2" defer></script>
   </body></html>
