@@ -281,6 +281,6 @@ function clock(){const n=new Date();$('#idleClock').textContent=ttime(n);$('#idl
 ticks();clock();setInterval(clock,1000);net();updateVersion();
 window.addEventListener('online',()=>{net();setTimeout(()=>syncQueue(),500);setTimeout(()=>bootstrap().catch(()=>{}),1200)});window.addEventListener('offline',net);
 $('#retrySetupBtn').onclick=()=>location.reload();$('#inBtn').onclick=()=>session('IN');$('#outBtn').onclick=()=>session('OUT');$('#startEnrollBtn').onclick=()=>session('ENROLL');$('#cancelCameraBtn').onclick=idle;$('#adminBtn').onclick=service;$('#modalClose').onclick=()=>$('#modal').classList.add('hidden');$('#modal').onclick=e=>{if(e.target===$('#modal'))$('#modal').classList.add('hidden')};
-if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js?v=1.5.0-prod-20260918-1',{updateViaCache:'none'}).then(r=>r.update().catch(()=>{})).catch(()=>{});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js?v=1.5.0-prod-20260921-2',{updateViaCache:'none'}).then(r=>r.update().catch(()=>{})).catch(()=>{});
 boot();
 })();
