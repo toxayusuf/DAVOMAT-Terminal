@@ -25,6 +25,7 @@ ctx.findOne_=(sheet,pred)=>sheet===ctx.DAVOMAT.SHEETS.ATTENDANCE_EVENTS?(events.
 ctx.getEmployeeById_=()=>({EMPLOYEE_ID:'E1',FULL_NAME:'Test Employee',POSITION:'QA',SCHEDULE_ID:'S1'});
 ctx.attendanceBusinessDate_=()=> '2026-09-18';
 ctx.getSetting_=(k,f)=>f;
+const realGetNextEventType=ctx.getNextEventType_;
 ctx.getNextEventType_=()=>({type:'IN',reason:''});
 ctx.appendRejectedEvent_=()=>{throw new Error('unexpected rejection')};
 ctx.dateToIso_=d=>new Date(d).toISOString();
@@ -51,9 +52,9 @@ assert.equal(rejected,1);
 
 ctx.findAll_=(sheet,pred)=>sheet===ctx.DAVOMAT.SHEETS.ATTENDANCE_EVENTS?[{EVENT_TYPE:'IN',EVENT_AT:'2026-09-21T09:31:16+05:00',EMPLOYEE_ID:'E1',STATUS:'ACCEPTED',EVENT_DATE:'2026-09-21'}].filter(pred):[];
 ctx.getSetting_=(k,f)=>k==='MIN_EVENT_GAP_MINUTES'?2:f;
-let nextRapid=ctx.getNextEventType_('E1','2026-09-21',new Date('2026-09-21T09:31:30+05:00'),'OUT');
+let nextRapid=realGetNextEventType('E1','2026-09-21',new Date('2026-09-21T09:31:30+05:00'),'OUT');
 assert.equal(nextRapid.type,'OUT','rapid opposite OUT must be allowed after IN');
-let repeatRapid=ctx.getNextEventType_('E1','2026-09-21',new Date('2026-09-21T09:31:30+05:00'),'IN');
+let repeatRapid=realGetNextEventType('E1','2026-09-21',new Date('2026-09-21T09:31:30+05:00'),'IN');
 assert.equal(repeatRapid.type,null,'rapid repeated IN must be blocked');
 assert.equal(repeatRapid.reason,'ALREADY_MARKED');
 
