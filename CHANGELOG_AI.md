@@ -1,66 +1,49 @@
 # DAVOMAT — AI CHANGELOG
 
-## 2026-09-21 — production frontend rollout
+## 2026-09-21 — Apps Script v1.5 production rollout
 
-- Fast-forwarded `main` to tested hardening head `2bd2cce603edfd704167cf745d1062bf88b75de2`.
-- DAVOMAT CI run `35557403243`: PASS.
-- GitHub Pages run `35557403242`: PASS.
-- Downloaded and inspected the actual Pages artifact; verified v1.5 build ID and absence of legacy hotfix runtime files.
-- Set production `SETTINGS.REQUIRE_ACTIVE_LIVENESS=true`.
+- Owner approved `APR-002`.
+- Recovered exact Script ID:
+  `1r529SSFauYTyu0E5ztLuff7_bS8aotq8F00kIIlj8NGFuA3I7l7vnKkF`.
+- Verified target project before write.
+- Found existing deployment at version @30.
+- Corrected a previously stored deployment-ID typo: the real ID contains `...M2VGl5...`, not `...M2VGI5...`.
+- Created pre-deploy Apps Script source backup.
+- Pushed exact DAVOMAT repository backend source.
+- First deployment advanced to @31.
+- Detected 404 immediately after @31 and did not treat deploy as complete.
+- Compared version 30 and 31 manifests:
+  - v30 contained `webapp.executeAs=USER_DEPLOYING`
+  - v30 contained `webapp.access=ANYONE_ANONYMOUS`
+  - v31 lost the `webapp` block because repository manifest did not contain it.
+- Fixed `apps-script/appsscript.json` in main commit `40645c21b1bc56a4a3a57c7f13208af28cd917ae`.
+- DAVOMAT CI run `35580082583`: PASS.
+- GitHub Pages run `35580082537`: PASS.
+- Re-ran guarded Apps Script deployment.
+- Existing production deployment advanced to **@32**.
+- Public health returned:
+  `{"ok":true,"service":"DAVOMAT","version":"1.5.0"}`.
+- No new spreadsheet, Script project, or permanent web-app URL was created.
+- `clasp run` migration/smoke calls still return Apps Script storage NOT_FOUND and are not counted as passed smoke tests.
+- Physical Face ID E2E remains outstanding.
 
 ## 2026-09-18 — v1.5 hardening
 
-- Replaced offline localStorage queue with IndexedDB v2:
-  - `offlineQueue`
-  - retry counter
-  - exponential backoff
-  - `deadLetter`
-  - legacy queue migration.
-- Service Worker:
-  - unique build ID `1.5.0-prod-20260918-1`
-  - network-first navigation
-  - versioned app shell
-  - separate model cache.
-- Removed runtime dependency on:
-  - `top-level-fix.js`
-  - `face-db-fix.js`
-  - `permission-helper.js`.
-- Face pipeline:
-  - 3 consecutive identity matches
-  - multi-face rejection
-  - face distance checks
-  - active blink challenge
-  - passive liveness and realness thresholds
-  - finite scan timeout
-  - Face DB cache refresh immediately after enrollment.
-- Backend source:
-  - Script Properties secret migration
-  - short ScriptLock
-  - CacheService request status
-  - final SYNC_LOG writes only
-  - attendance durable commit before Drive/Telegram post-processing
-  - overnight shift support
-  - active liveness required for attendance/enrollment.
-- Admin source:
-  - session restore/logout
-  - employee edit and activation
-  - face reset
-  - schedule create/edit
-  - attendance correction
-  - device activation/deactivation
-  - system diagnostics.
-- Added CI tests for architecture and attendance business rules.
+- IndexedDB retry/dead-letter offline queue.
+- Duplicate-safe event/request IDs.
+- Service Worker versioning/network-first navigation.
+- 3 consecutive face matches.
+- Multi-face rejection.
+- Active blink + passive liveness.
+- Short ScriptLock.
+- Durable attendance commit before Drive/Telegram post-processing.
+- Overnight shift support.
+- Completed admin employee/schedule/attendance/device source.
+- Added CI architecture and attendance business-rule tests.
 
 ## 2026-09-17 — restore point and audit
 
-- Restore branch created from production commit `81d34ab765fb0f08ca3206e37b21b1c52dea7597`.
+- Restore branch created.
 - Production spreadsheet backup created.
-- Confirmed production schema and active face data.
-- Confirmed photo folder is private.
-- Identified major root causes:
-  - multiple frontend hotfix layers
-  - stale Service Worker behavior
-  - offline localStorage queue without dead-letter
-  - Drive/Telegram inside global attendance lock
-  - admin schedule buttons not implemented
-  - plaintext secret architecture in SETTINGS.
+- Production schema and active face data audited.
+- Photo folder privacy verified.
