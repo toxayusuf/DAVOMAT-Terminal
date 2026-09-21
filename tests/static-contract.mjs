@@ -57,3 +57,6 @@ console.log(JSON.stringify({gasMethods:gasMethods.length,build:'1.5.0-prod-20260
 
 assert(code.includes('<base target="_top">'),'Apps Script launcher must escape iframe');
 assert(code.includes('target="_top"'),'launcher button must navigate top-level');
+
+assert(code.includes("check('Date helper previous day'"),'Apps Script date-helper smoke regression missing');
+assert(code.includes("return dateKeyFromDate_(new Date(base.getTime() - 86400000))"),'previousDateKey must pass a Date object to Utilities.formatDate');
