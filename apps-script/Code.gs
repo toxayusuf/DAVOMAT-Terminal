@@ -1542,9 +1542,8 @@ function terminalDirectUrl_(purpose, enrollmentCode) {
 
 function redirectHtml_(title, targetUrl, fallbackText) {
   var safe = htmlEsc_(targetUrl);
-  return '<!doctype html><html lang="uz-Cyrl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>' + htmlEsc_(title) + '</title>' +
-    '<style>html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:#07101e;color:#fff}main{min-height:100vh;display:grid;place-items:center;padding:24px}.card{width:min(520px,92vw);background:#102039;border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:28px;text-align:center}.btn{display:block;text-decoration:none;background:#3f75ef;color:#fff;padding:18px;border-radius:16px;font-weight:900;font-size:20px;margin-top:22px}.muted{color:#9fb0c8;line-height:1.5}</style></head><body><main><div class="card"><h1>DAVOMAT</h1><p class="muted">' + htmlEsc_(fallbackText || 'Терминал очилмоқда…') + '</p><a class="btn" href="' + safe + '">ДАВОМ ЭТИШ</a></div></main>' +
-    '<script>setTimeout(function(){location.replace(' + JSON.stringify(targetUrl) + ');},120);<\/script></body></html>';
+  return '<!doctype html><html lang="uz-Cyrl"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>' + htmlEsc_(title) + '</title>' +
+    '<style>html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:#07101e;color:#fff}main{min-height:100vh;display:grid;place-items:center;padding:24px}.card{width:min(520px,92vw);background:#102039;border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:28px;text-align:center}.btn{display:block;text-decoration:none;background:#3f75ef;color:#fff;padding:18px;border-radius:16px;font-weight:900;font-size:20px;margin-top:22px}.muted{color:#9fb0c8;line-height:1.5}</style></head><body><main><div class="card"><h1>DAVOMAT</h1><p class="muted">' + htmlEsc_(fallbackText || 'Терминал тайёр. Қуйидаги тугмани босинг.') + '</p><a class="btn" target="_top" rel="noopener" href="' + safe + '">DAVOMAT НИ ОЧИШ</a><p class="muted" style="margin-top:14px">Камера ишлаши учун терминал GitHub Pages да тўлиқ ойнада очилади.</p></div></main></body></html>';
 }
 
 function terminalHostHtml_(hostKey) {
