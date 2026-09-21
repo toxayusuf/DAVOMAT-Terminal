@@ -54,3 +54,6 @@ assert(!admin.includes('cfgDeviceToken'),'device secret must not render in admin
 
 console.log('STATIC CONTRACT PASS');
 console.log(JSON.stringify({gasMethods:gasMethods.length,build:'1.5.0-prod-20260921-2'},null,2));
+
+assert(code.includes('<base target="_top">'),'Apps Script launcher must escape iframe');
+assert(code.includes('target="_top"'),'launcher button must navigate top-level');
