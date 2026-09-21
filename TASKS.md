@@ -4,49 +4,32 @@
 
 - [x] Create restore branch before hardening.
 - [x] Create independent Google Sheets backup.
-- [x] Remove duplicate frontend hotfix runtimes from production.
-- [x] Replace localStorage offline queue with IndexedDB retry/dead-letter queue.
-- [x] Add frontend duplicate-safe event/request IDs.
-- [x] Keep backend EVENT_ID idempotency contract in v1.5 source.
-- [x] Make Drive/Telegram post-commit in v1.5 backend source.
-- [x] Bound ScriptLock to 3 seconds in v1.5 backend source.
-- [x] Verify production data schema against backend headers.
-- [ ] Deploy Apps Script v1.5 source to existing production deployment. **BLOCKED: no Apps Script deploy action/project ID available to current connector.**
-- [ ] Remove plaintext secrets from live SETTINGS by running v1.5 migration after deployment. **BLOCKED by previous item.**
+- [x] Harden frontend/backend source and CI.
+- [x] Publish current terminal source; latest `main` `39436226a7b401484ef3b52a567c372ba245ee27` has CI PASS.
+- [x] Owner approved production backend deploy under `APR-002`.
+- [x] Verify historical `null.getTime` path is already guarded in current source.
+- [ ] Recover exact production Apps Script `scriptId`. **BLOCKER: identifier is not exposed by current connectors.**
+- [ ] Verify the recovered script owns deployment `AKfycbwSHS3Vk1DPHj_3NIWr5xuBN81mM2VGI5aodzaOFjK1tjeTc-9i7PyeUoB8-gClQUjxAw`.
+- [ ] Deploy Apps Script v1.5 source to the existing production deployment.
+- [ ] Run `migrateDavomatSchema()` once.
+- [ ] Run `runDavomatSmokeTests()`.
+- [ ] Verify public health endpoint reports v1.5.0.
 
 ## P1
 
-- [x] Publish Face Terminal v1.5 to GitHub Pages.
-- [x] Make Service Worker update deterministic.
-- [x] Add multi-face rejection.
-- [x] Add active blink challenge + passive liveness/antispoof.
-- [x] Enable `REQUIRE_ACTIVE_LIVENESS=true` in production SETTINGS.
-- [x] Invalidate Face DB cache after enrollment.
-- [x] Add 24h maximum online bootstrap cache.
-- [x] Add overnight-shift support in backend source.
-- [x] Complete admin source: employee edit/activation, face reset, schedule editor, attendance correction, terminal active state, diagnostics.
-- [ ] Physical E2E #1 new employee after v1.5 backend deploy.
-- [ ] Physical E2E #2 reload.
-- [ ] Physical E2E #3 offline.
-- [ ] Physical E2E #5 unknown face.
-- [ ] Physical E2E #6 disabled employee.
-- [ ] Physical E2E #7 photo/screen spoof.
-- [ ] Physical E2E #8 clean-session admin.
-- [ ] Configure Telegram token/chat ID and test a real message.
+- [ ] Physical E2E: registration/enrollment.
+- [ ] Physical E2E: Face ID IN/OUT.
+- [ ] Physical E2E: reload/session continuity.
+- [ ] Physical E2E: offline -> online queue sync.
+- [ ] Physical E2E: unknown face.
+- [ ] Physical E2E: disabled employee.
+- [ ] Physical E2E: photo/screen spoof.
+- [ ] Physical E2E: clean-session admin login.
+- [ ] Measure real terminal P50/P95.
 
-## P2
+## Safety
 
-- [x] Add CI architecture contract.
-- [x] Add executable backend business contract.
-- [x] Verify Salary v1 formula with deterministic test.
-- [x] Verify night-shift date assignment with deterministic test.
-- [x] Verify one logical EVENT_ID appends once in deterministic test.
-- [ ] Measure production cold/warm performance on actual terminal.
-- [ ] Confirm daily photo-retention trigger exists after backend deployment.
-- [ ] Confirm Telegram retry/dedup behavior after credentials are configured.
-
-## P3
-
-- [x] Remove obsolete runtime files.
-- [x] Add system diagnostics page in admin source.
-- [x] Add project documentation and recovery runbook.
+- Never create a new production spreadsheet.
+- Never create a replacement permanent web-app URL.
+- Never deploy against a guessed Script ID.
+- Preserve restore branch and pre-production Sheet backup.
