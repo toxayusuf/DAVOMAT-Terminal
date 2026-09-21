@@ -1,12 +1,12 @@
-const VERSION='1.5.0-prod-20260918-1';
+const VERSION='1.5.0-prod-20260921-2';
 const SHELL_CACHE=`davomat-shell-${VERSION}`;
 const MODEL_CACHE='davomat-model-runtime-v1';
 const SHELL=[
   './',
   './index.html',
-  './styles.css?v=1.5.0-prod-20260918-1',
-  './app.js?v=1.5.0-prod-20260918-1',
-  './manifest.webmanifest?v=1.5.0-prod-20260918-1',
+  './styles.css?v=1.5.0-prod-20260921-2',
+  './app.js?v=1.5.0-prod-20260921-2',
+  './manifest.webmanifest?v=1.5.0-prod-20260921-2',
   './icon.svg'
 ];
 
