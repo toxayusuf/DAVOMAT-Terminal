@@ -22,7 +22,7 @@ assert.match(api,/davomat_commit_mark/);
 assert.doesNotMatch(api,/SERVICE_KEY\s*=\s*["'](?!["'])/);
 assert.match(admin,/signInWithOtp/);
 assert.match(admin,/admin\.whoami/);
-assert.match(admin,/ADMIN_FORBIDDEN/);
+assert.match(api,/ADMIN_FORBIDDEN/);
 assert.match(schema,/pg_advisory_xact_lock/);
 assert.match(schema,/CHALLENGE_INVALID/);
 assert.match(host,/Content-Security-Policy/);
