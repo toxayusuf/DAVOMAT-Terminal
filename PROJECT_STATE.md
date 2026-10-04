@@ -67,3 +67,20 @@ Authenticated `clasp run migrateDavomatSchema` and `runDavomatSmokeTests` return
 ## Next action
 
 Run the physical acceptance matrix from `TEST_REPORT.md` on the actual webcam/terminal path. Do not create a new deployment URL or production Sheet.
+
+
+## SUPABASE MIGRATION (2026-10-04, STAGING; NOT CUT OVER)
+- Requested organization: toxirjon.uzb Org, controlled by tohirjon.uzb@gmail.com.
+- Supabase ref glrluvbgrdftpcmwbhtr; project davomat, ap-south-1.
+- Isolated branch: migration/supabase-davomat. Main, working Apps Script URL, Sheets and Drive remain active and unchanged.
+- Postgres: 14 core business tables + device pairing, scan challenges and temporary private photo staging; RLS enabled with direct anon/authenticated grants revoked.
+- Verified snapshot: 2 employees, 18 face profiles (6 active), 18 events, 20 day summaries, 3 salary records, 24 sync requests, 21 historical enrollment sessions, 9 admin audit events.
+- Photo migration: 8 source JPEGs confirmed, SHA256 and file sizes staged privately. Storage object count 0; **NOT COMPLETED**. Ephemeral migration endpoint is disabled (HTTP 410); do not describe as migrated to Storage.
+- Functions: davomat-api v1 and davomat-web v2 deployed. API unauthenticated admin/device requests rejected.
+- Preview URLs:
+  https://glrluvbgrdftpcmwbhtr.supabase.co/functions/v1/davomat-web/
+  https://glrluvbgrdftpcmwbhtr.supabase.co/functions/v1/davomat-web/admin
+- Real device inactive; no Supabase Auth user/owner registered yet.
+- Database rollback-only tests: night shift and regular shift with lunch/late/early calculations PASS.
+- Blockers: owner login, authenticated device pairing, private photo Storage finalization, physical Face ID test, full legacy parity, final security review.
+- No davomat.dev ownership/DNS verified. Do not switch production traffic or revoke old secrets yet.
