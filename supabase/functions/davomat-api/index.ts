@@ -340,7 +340,7 @@ async function run(req: Request, x: Record<string, any>) {
 
 Deno.serve(async req=>{
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:httpHeaders(req)});
-  if(req.method==="GET")return reply(req,{ok:true,service:"DAVOMAT",version:VERSION,mode:"preview"});
+  if(req.method==="GET")return reply(req,{ok:true,service:"DAVOMAT",version:VERSION,mode:"preview",publicAnonKey:Deno.env.get("SUPABASE_ANON_KEY")||""});
   if(req.method!=="POST")return error(req,"METHOD_NOT_ALLOWED",405);
   const size=Number(req.headers.get("content-length")||0);
   if(size>1500000)return error(req,"PAYLOAD_TOO_LARGE",413);
