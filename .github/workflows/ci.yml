@@ -25,3 +25,10 @@ jobs:
 
       - name: Supabase migration contract
         run: node tests/supabase-migration-contract.mjs
+
+      - name: Supabase terminal syntax
+        run: node --check supabase/web/terminal.js
+      - name: Supabase admin module syntax
+        run: node --input-type=module --check < supabase/web/admin.js
+      - name: Supabase preview contract
+        run: node tests/supabase-ui-contract.mjs
