@@ -47,3 +47,13 @@
 - Production spreadsheet backup created.
 - Production schema and active face data audited.
 - Photo folder privacy verified.
+
+
+### 2026-10-04 — Supabase DAVOMAT preparation
+- Created project davomat in toxirjon.uzb Org and migration/supabase-davomat branch.
+- Applied six private database migrations and implemented Edge Functions davomat-api and davomat-web.
+- Reused terminal UI and created modern admin preview.
+- Imported legacy reference, attendance, biometric and audit records.
+- Performed API auth-denial tests and rollback-only day/night calculations.
+- All eight Drive photos staged privately with SHA256; final Storage upload blocked; transient import function disabled.
+- Main Apps Script deployment and GitHub main intentionally preserved; no production cutover.
