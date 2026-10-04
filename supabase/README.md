@@ -64,3 +64,5 @@ DONE: project, schema, first data snapshot, API/web previews, calculation tests.
 - 8 source photos are in davomat_photo_staging; bucket remains private and empty. Temporary import endpoint disabled (HTTP 410) after an external operation was blocked.
 - Do not expose staging bytes or hashes in public files or user-facing logs.
 - One-time codes and device secrets from Google are not reused.
+
+HTML browser UI must use GitHub Pages /v2/. Supabase shared Edge URL rewrites HTML to plain text, and must not be advertised as a frontend.
