@@ -78,9 +78,11 @@ Run the physical acceptance matrix from `TEST_REPORT.md` on the actual webcam/te
 - Photo migration: 8 source JPEGs confirmed, SHA256 and file sizes staged privately. Storage object count 0; **NOT COMPLETED**. Ephemeral migration endpoint is disabled (HTTP 410); do not describe as migrated to Storage.
 - Functions: davomat-api v1 and davomat-web v2 deployed. API unauthenticated admin/device requests rejected.
 - Preview URLs:
-  https://glrluvbgrdftpcmwbhtr.supabase.co/functions/v1/davomat-web/
-  https://glrluvbgrdftpcmwbhtr.supabase.co/functions/v1/davomat-web/admin
+  https://toxayusuf.github.io/DAVOMAT-Terminal/v2/
+  https://toxayusuf.github.io/DAVOMAT-Terminal/v2/admin.html
 - Real device inactive; no Supabase Auth user/owner registered yet.
 - Database rollback-only tests: night shift and regular shift with lunch/late/early calculations PASS.
 - Blockers: owner login, authenticated device pairing, private photo Storage finalization, physical Face ID test, full legacy parity, final security review.
 - No davomat.dev ownership/DNS verified. Do not switch production traffic or revoke old secrets yet.
+
+- 2026-10-04: Supabase Edge Functions force HTML GET responses to text/plain on shared free domains. Frontend is now static under `/v2/` on GitHub Pages (additive only); Supabase remains the backend. Old Supabase web address is not supported. Do not direct users to it.
