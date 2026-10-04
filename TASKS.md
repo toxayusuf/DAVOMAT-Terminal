@@ -44,3 +44,22 @@
 - Never create a replacement permanent web-app URL.
 - Never deploy against a guessed Script ID.
 - Keep webapp `executeAs/access` configuration in version-controlled `appsscript.json`.
+
+
+## SUPABASE DAVOMAT 2.0 — 2026-10-04
+- [x] Confirm target Supabase identity, organization, project creation cost.
+- [x] Create isolated project davomat and migration branch.
+- [x] Apply private database schema, RLS, indexes.
+- [x] Copy employees, shifts, safe settings, face profiles, events, days, salary, historical logs.
+- [x] Deploy auth-protected Supabase API and separate UI previews.
+- [x] Test anonymous admin/device rejection and day/night shift calculations.
+- [x] Fetch and hash 8 private source photos into RLS-protected staging.
+- [ ] Authenticate Supabase Auth owner tohirjon.uzb@gmail.com.
+- [ ] Pair a test device with a new one-use code. Leave existing production terminal alone.
+- [ ] Verify webcam enrollment and live IN/OUT with private Supabase Storage photo.
+- [ ] Move 8 staged JPEGs into private Storage via an owner-authorized normal import workflow; temporary migration endpoint disabled.
+- [ ] Reconcile all data, including new changes in Google made since first snapshot.
+- [ ] Validate duplicate requests, offline/replay security, spoof & non-matching face trials, photo retention, schedule/night shift under real camera.
+- [ ] Implement remaining admin operations, Telegram notifications, salary jobs, photo retention, audited corrections.
+- [ ] Verify davomat.dev domain control and supported hosting; choose domain with owner.
+- [ ] Obtain explicit owner acceptance before disabling Google backend.
