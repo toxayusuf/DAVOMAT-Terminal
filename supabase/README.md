@@ -1,6 +1,6 @@
 # DAVOMAT → Supabase migration
 
-State: PREPARATION ONLY / NO LIVE CUTOVER (2026-10-04).
+State: STAGING API + WEB LIVE / NO LIVE CUTOVER (2026-10-04).
 
 ## Destination / hard blocker
 - Display name: DAVOMAT. New Supabase project: davomat.
@@ -57,4 +57,10 @@ State: PREPARATION ONLY / NO LIVE CUTOVER (2026-10-04).
 ## State
 DONE: isolated GitHub branch and first SQL migration.
 DONE: new Supabase account connection verified. BLOCKED: explicit organization selection and billing approval before project creation.
-PENDING: data import, new APIs, new frontend/admin, security/performance tests and controlled cutover.
+DONE: project, schema, first data snapshot, API/web previews, calculation tests. PENDING: Auth owner, real device test, 8 photos still in private staging (not Storage), complete feature parity, delta sync, custom domain and cutover.
+
+## Verified project (October 4)
+- Project: glrluvbgrdftpcmwbhtr / region ap-south-1.
+- 8 source photos are in davomat_photo_staging; bucket remains private and empty. Temporary import endpoint disabled (HTTP 410) after an external operation was blocked.
+- Do not expose staging bytes or hashes in public files or user-facing logs.
+- One-time codes and device secrets from Google are not reused.
