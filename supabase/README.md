@@ -6,12 +6,12 @@ State: PREPARATION ONLY / NO LIVE CUTOVER (2026-10-04).
 - Display name: DAVOMAT. New Supabase project: davomat.
 - The intended account is **tohirjon.uzb@gmail.com ONLY**.
 - Candidate domain: davomat.dev, pending domain ownership and DNS confirmation.
-- BLOCKED: connected Supabase only exposes "t.mamutxanov@gmail.com's Org".
+- CONNECTED: new Supabase link `tohirjon.uzb` exposes ONLY `toxirjon.uzb Org` (org ID `fkzcnyoilmbocbzpszbh`), currently 0 projects. Explicit organization selection and project cost confirmation still required before creation.
 - DO NOT create the project in that organization or modify its FieldFlow and supervisor-learning-v3 projects.
 
 ## Non-disruptive migration
 1. Keep current main, Google Apps Script, Sheets and Drive unchanged.
-2. Reconnect Supabase with the explicitly requested Google identity.
+2. VERIFIED: Supabase connector selected `tohirjon.uzb`, with one organization `toxirjon.uzb Org`.
 3. Ask which organization to use, check price and get cost approval.
 4. Create separate davomat Supabase project, then apply SQL migrations.
 5. Import settings, schedules, employees, devices metadata, face profiles, sessions, attendance events, corrections, salaries, audits and sync logs with stable IDs.
@@ -56,5 +56,5 @@ State: PREPARATION ONLY / NO LIVE CUTOVER (2026-10-04).
 
 ## State
 DONE: isolated GitHub branch and first SQL migration.
-BLOCKED: owner account connection, project creation and billing approval.
+DONE: new Supabase account connection verified. BLOCKED: explicit organization selection and billing approval before project creation.
 PENDING: data import, new APIs, new frontend/admin, security/performance tests and controlled cutover.
