@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#081422"><title>DAVOMAT · Управление</title>
+<style>
+:root{color-scheme:dark;--bg:#081422;--ink:#f0f5fc;--muted:#9eb1c7;--edge:#253953;--accent:#6a95ff;--teal:#56d8b9;--danger:#fb8b95}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,system-ui,"Segoe UI",Arial,sans-serif;background:radial-gradient(ellipse at 70% -15%,#24416a 0,transparent 55%),var(--bg);color:var(--ink)}
+button,input{font:inherit}button{cursor:pointer}a{color:#86adff;text-decoration:none}
+.shell{display:flex;min-height:100vh}
+aside{width:244px;flex-shrink:0;background:#0a1b2e;border-right:1px solid var(--edge);padding:28px 16px}
+.logo{display:flex;align-items:center;gap:12px;font-size:22px;font-weight:850;letter-spacing:-.8px;padding:8px 10px 28px}.mark{display:grid;place-items:center;width:39px;height:39px;border-radius:13px;background:linear-gradient(135deg,#70acff,#3656e0);color:white}
+.nav{width:100%;border:0;color:#b8c8db;background:transparent;text-align:left;padding:13px 16px;border-radius:14px;margin:3px 0;font-weight:650}.nav.on,.nav:hover{background:#1b3150;color:white}
+.subtle{color:var(--muted);font-size:13px}
+main{flex:1;min-width:0;max-width:1360px;padding:32px clamp(14px,3.5vw,48px)}
+.head{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:29px;flex-wrap:wrap}
+.head h1{font-size:clamp(23px,3vw,31px);margin:0 0 6px;font-weight:800;letter-spacing:-.6px}
+.pill{background:#133c3c;color:#67ead0;border:1px solid #245855;border-radius:30px;padding:8px 13px;font-size:12px}
+.button{border:1px solid #45618c;color:#fff;background:#23487e;padding:12px 16px;border-radius:13px;font-weight:750}
+.button:hover{background:#315b92}.button.primary{background:linear-gradient(125deg,#3d74ec,#6a85ee);border-color:transparent}
+.button.danger{background:#542635;border-color:#985062}
+.input{width:100%;border:1px solid #3b5172;color:white;background:#11253d;border-radius:13px;padding:14px 15px;outline:none;margin:6px 0 13px}
+.input:focus{border-color:#628ef5}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:15px;margin-bottom:20px}
+.card{background:linear-gradient(150deg,#132640,#101f34);border:1px solid #2a405c;border-radius:20px;padding:20px;box-shadow:0 16px 35px #020a1730}
+.card .stat{font-size:29px;font-weight:850;letter-spacing:-1px;margin:10px 0}
+.card h3{font-size:15px;margin:0 0 13px}.grid2{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
+.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;text-align:left;font-size:13px}
+.table th,.table td{padding:13px 11px;border-bottom:1px solid #28405b;white-space:nowrap}
+.table th{color:#9cb1cd;font-size:11px;text-transform:uppercase;letter-spacing:.8px}
+.table tr:last-child td{border-bottom:0}.mini{border:1px solid #385477;background:#1c3757;color:#dceaff;border-radius:10px;padding:8px 11px;font-size:12px;font-weight:650;margin:2px}
+.mini:hover{background:#27527f}.mini.warn{border-color:#74434c;background:#4c2531}
+.layout-login{max-width:420px;margin:7vh auto}.layout-login .mark{width:54px;height:54px;font-size:24px}
+.login-head{text-align:center;margin-bottom:22px}.login-head .mark{margin:auto}
+#notice{position:fixed;right:25px;bottom:23px;max-width:420px;background:#183d64;border:1px solid #4776ad;border-radius:15px;padding:14px 18px;box-shadow:0 10px 50px #0008;display:none;z-index:5;line-height:1.5}
+.code{font-size:30px;letter-spacing:3px;font-family:ui-monospace,Consolas,monospace;color:#70e2c9;font-weight:850;overflow-wrap:anywhere}
+.bar{width:100%;height:10px;background:#28405e;border-radius:8px;overflow:hidden}.bar span{display:block;height:100%;background:linear-gradient(90deg,#5c8aff,#5cd8b8)}
+#loading{margin-top:8vh;text-align:center}
+.fade{animation:fade .35s both}@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(max-width:850px){aside{width:73px;padding:18px 8px}.logo{font-size:0}.logo .mark{flex-shrink:0;font-size:20px}.nav{font-size:11px;padding:11px 5px;text-align:center}main{padding:20px 12px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:1fr}}
+@media(max-width:450px){.metrics{gap:9px}.card{padding:14px}.card .stat{font-size:23px}.logo{padding:0 8px 22px}.head{gap:6px}}
+</style></head>
+<body><div id="app"><div id="loading">DAVOMAT · соединение с Supabase…</div></div>
+<div id="notice" role="status" aria-live="polite"></div>
+<script type="module" src="./assets/admin.js"></script></body></html>
