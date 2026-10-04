@@ -196,6 +196,5 @@ begin
     execute format('revoke all on public.%I from anon,authenticated',r.tablename);
   end loop;
 end $$;
-revoke all on storage.objects from anon;
 -- Storage's existing policies are not modified: only this bucket is private.
 -- service_role secret MUST stay in Supabase Edge Function env, never in JS.
