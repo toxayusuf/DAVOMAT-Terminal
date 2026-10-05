@@ -1,7 +1,7 @@
 (() => {
 "use strict";
 const API="https://glrluvbgrdftpcmwbhtr.supabase.co/functions/v1/davomat-api";
-const VERSION="2.0.0-preview";
+const VERSION="2.0.1-preview";
 const STORE="davomat-supabase-device-v1";
 const HUMAN_URL="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js";
 const MODEL="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/";
