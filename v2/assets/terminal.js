@@ -1,7 +1,7 @@
 (() => {
 "use strict";
 const API="https://glrluvbgrdftpcmwbhtr.supabase.co/functions/v1/davomat-api";
-const VERSION="2.0.1-preview";
+const VERSION="2.0.2-preview";
 const STORE="davomat-supabase-device-v1";
 const HUMAN_URL="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js";
 const MODEL="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/";
@@ -15,6 +15,17 @@ function clock(){const n=new Date();$("#idleClock").textContent=new Intl.DateTim
 function status(){const el=$("#netBadge");el.textContent=navigator.onLine?"ОНЛАЙН":"ОФЛАЙН";el.className="badge "+(navigator.onLine?"online":"offline")}
 function toast(t){const e=$("#toast");e.textContent=t;e.classList.remove("hidden");setTimeout(()=>e.classList.add("hidden"),4500)}
 function errText(e){return typeof e==="string"?e:String(e?.message||e||"Хатолик")}
+function withTimeout(promise,ms,code){
+ let timer;
+ return Promise.race([
+  promise,
+  new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(code)),ms)})
+ ]).finally(()=>clearTimeout(timer));
+}
+function modelStatus(text){
+ const e=$("#cameraStatus");
+ if(e && !$("#cameraView").classList.contains("hidden")) e.textContent=text;
+}
 function api(action,payload={},device=true,timeout=30000){
  return (async()=>{
   if(!navigator.onLine)throw Error("INTERNET_REQUIRED");
@@ -51,13 +62,15 @@ async function ensureHuman(){
    });
   }
   if(!window.Human?.Human)throw Error("FACE_MODEL_LOAD_FAILED");
+  modelStatus("FACE ID МОДЕЛЛАРИ ЮКЛАНМОҚДА…");
   const h=new Human.Human({backend:"webgl",modelBasePath:MODEL,cacheSensitivity:.72,
    face:{enabled:true,detector:{rotation:false,maxDetected:2},mesh:{enabled:true},
     description:{enabled:true},iris:{enabled:true},emotion:{enabled:false},
     antispoof:{enabled:true},liveness:{enabled:true}},
    body:{enabled:false},hand:{enabled:false},object:{enabled:false},gesture:{enabled:true}});
-  await h.load();
-  await h.warmup();
+  await withTimeout(h.load(),90000,"FACE_MODELS_TIMEOUT");
+  modelStatus("FACE ID ТАЙЁРЛАНМОҚДА…");
+  await withTimeout(h.warmup(),30000,"FACE_WARMUP_TIMEOUT");
   state.human=h;
   return h;
  })().catch(e=>{state.humanInit=null;throw e});
