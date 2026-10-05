@@ -34,8 +34,8 @@
   <script>
 (function(){
   if(!("serviceWorker" in navigator)) return;
-  const key="davomat-v2-sw-2.0.2-reload";
-  navigator.serviceWorker.register("./sw-v2.js",{scope:"./"}).then(reg=>{
+  const key="davomat-v2-sw-2.0.3-reload";
+  navigator.serviceWorker.register("./sw-v2.js?v=2.0.3",{scope:"./",updateViaCache:"none"}).then(reg=>{
     if(reg.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"});
     const controller=navigator.serviceWorker.controller;
     if(!controller || !controller.scriptURL.includes("/v2/sw-v2.js")){
@@ -48,5 +48,5 @@
   }).catch(err=>console.error("V2_SW_REGISTER_FAILED",err));
 })();
 </script>
-<script src="./assets/terminal.js" defer></script>
+<script src="./assets/terminal.js?v=2.0.3" defer></script>
   </body></html>
