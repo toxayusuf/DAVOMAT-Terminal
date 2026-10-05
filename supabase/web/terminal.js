@@ -6,7 +6,7 @@ const STORE="davomat-supabase-device-v1";
 const HUMAN_URL="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js";
 const MODEL="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/";
 const $=q=>document.querySelector(q);
-const state={device:null,human:null,camera:null,active:false,busy:false,
+const state={device:null,human:null,humanInit:null,camera:null,active:false,busy:false,
  mode:null,challenge:null,blinkStart:0,blinkMs:0,samples:[],lastSample:null,
  started:0,pendingEnrollment:null};
 function display(id){for(const name of ["loadingView","setupView","idleView","cameraView","resultView"])$("#"+name).classList.toggle("hidden",name!==id)}
@@ -34,15 +34,31 @@ function api(action,payload={},device=true,timeout=30000){
 }
 async function ensureHuman(){
  if(state.human)return state.human;
- if(!window.Human?.Human){
-  await new Promise((yes,no)=>{const sc=document.createElement("script");sc.src=HUMAN_URL;sc.onload=yes;sc.onerror=()=>no(Error("FACE_MODEL_LOAD_FAILED"));document.head.append(sc)});
- }
- const h=new Human.Human({backend:"webgl",modelBasePath:MODEL,cacheSensitivity:.72,
- face:{enabled:true,detector:{rotation:false,maxDetected:2},mesh:{enabled:true},
-  description:{enabled:true},iris:{enabled:true},emotion:{enabled:false},
-  antispoof:{enabled:true},liveness:{enabled:true}},
- body:{enabled:false},hand:{enabled:false},object:{enabled:false},gesture:{enabled:true}});
- await h.load();await h.warmup();state.human=h;return h;
+ if(state.humanInit)return state.humanInit;
+ state.humanInit=(async()=>{
+  if(!window.Human?.Human){
+   await new Promise((yes,no)=>{
+    const existing=document.querySelector('script[data-davomat-human="1"]');
+    if(existing){
+     existing.addEventListener("load",yes,{once:true});
+     existing.addEventListener("error",()=>no(Error("FACE_MODEL_LOAD_FAILED")),{once:true});
+     return;
+    }
+    const sc=document.createElement("script");
+    sc.src=HUMAN_URL;sc.async=true;sc.crossOrigin="anonymous";sc.dataset.davomatHuman="1";
+    sc.onload=yes;sc.onerror=()=>no(Error("FACE_MODEL_LOAD_FAILED"));
+    document.head.append(sc);
+   });
+  }
+  if(!window.Human?.Human)throw Error("FACE_MODEL_LOAD_FAILED");
+  const h=new Human.Human({backend:"webgl",modelBasePath:MODEL,cacheSensitivity:.72,
+   face:{enabled:true,detector:{rotation:false,maxDetected:2},mesh:{enabled:true},
+    description:{enabled:true},iris:{enabled:true},emotion:{enabled:false},
+    antispoof:{enabled:true},liveness:{enabled:true}},
+   body:{enabled:false},hand:{enabled:false},object:{enabled:false},gesture:{enabled:true}});
+  await h.load();await h.warmup();state.human=h;return h;
+ })().catch(e=>{state.humanInit=null;throw e});
+ return state.humanInit;
 }
 function circle(){const t=$("#scanTicks");t.replaceChildren();for(let i=0;i<36;i++){const x=document.createElement("span");x.className="scan-tick";x.style.transform="translate(-50%,-50%) rotate("+(i*10)+"deg) translateY(-190px)";t.append(x)}}
 function ring(f){const parts=[...document.querySelectorAll(".scan-tick")],n=Math.round(Math.min(1,Math.max(0,f))*36);parts.forEach((e,i)=>{e.classList.toggle("done",i<n);e.classList.toggle("active",i===n)})}
@@ -84,28 +100,39 @@ async function scan(mode,code=""){
  if(!state.device){setup("Терминал уланмаган");return}
  state.busy=true;state.mode=mode;state.samples=[];state.lastSample=null;
  state.blinkStart=0;state.blinkMs=0;state.challenge=null;state.pendingEnrollment=null;
- state.started=performance.now();
+ state.started=0;validFrames=0;lastFrame=0;
  try{
   if(mode==="ENROLL"){
    const r=await api("device.enrollmentInfo",{code});
    state.pendingEnrollment={...r,code};
-  }else state.challenge=await api("device.challenge",{mode});
+  }
   display("cameraView");
   $("#modeBadge").textContent=mode==="IN"?"КЕЛДИ":mode==="OUT"?"КЕТДИ":"ЮЗНИ РЎЙХАТГА ОЛИШ";
-  $("#cameraStatus").textContent="КАМЕРА ТАЙЁРЛАНМОҚДА…";
+  $("#cameraStatus").textContent="МОДЕЛЬ ЮКЛАНМОҚДА…";
   $("#enrollCounter").classList.toggle("hidden",mode!=="ENROLL");
   $("#enrollCounter").textContent="0 / 6";
   $(".camera-card").classList.toggle("enroll-mode",mode==="ENROLL");
   $("#faceScanner").className="face-scanner "+(mode==="ENROLL"?"enrolling":"recognizing");
-  message("Камера тайёрланмоқда","Бир марта кўзингизни юминг");
+  message("Камера тайёрланмоқда","Face ID модели юкланмоқда");
   const streamPromise=navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:"user",width:{ideal:640},height:{ideal:480}}});
   const humanPromise=ensureHuman();
   state.camera=await streamPromise;
-  $("#video").srcObject=state.camera; await $("#video").play();
+  $("#video").srcObject=state.camera;
+  await $("#video").play();
   await humanPromise;
-  state.active=true;state.busy=false; $("#cameraStatus").textContent="ТАЙЁР";
+  if(mode!=="ENROLL"){
+   $("#cameraStatus").textContent="СЕРВЕР ТЕКШИРИЛМОҚДА…";
+   state.challenge=await api("device.challenge",{mode},true,15000);
+  }
+  state.started=performance.now();
+  state.active=true;state.busy=false;
+  $("#cameraStatus").textContent="ТАЙЁР";
+  message("Камерага қаранг","Бир марта кўзингизни юминг");
   requestAnimationFrame(frame);
- }catch(e){await stopCamera();state.busy=false;display("idleView");toast("Камера ёки сервер: "+errText(e))}
+ }catch(e){
+  await stopCamera();state.busy=false;state.started=0;display("idleView");
+  toast("Камера ёки Face ID: "+errText(e));
+ }
 }
 let lastFrame=0,validFrames=0;
 async function frame(){
@@ -178,6 +205,7 @@ async function init(){
   display("loadingView");
   await api("device.bootstrap",{},true,20000);
   display("idleView");
+  setTimeout(()=>ensureHuman().catch(e=>console.warn("FACE_PRELOAD_FAILED",errText(e))),150);
   const url=new URL(location.href),code=url.searchParams.get("enroll");
   if(code)scan("ENROLL",code).catch(e=>toast(errText(e)));
  }catch(e){state.device=null;localStorage.removeItem(STORE);setup(errText(e))}
