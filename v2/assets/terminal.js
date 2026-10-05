@@ -1,7 +1,7 @@
 (() => {
 "use strict";
 const API="https://glrluvbgrdftpcmwbhtr.supabase.co/functions/v1/davomat-api";
-const VERSION="2.0.2-preview";
+const VERSION="2.0.3-preview";
 const STORE="davomat-supabase-device-v1";
 const HUMAN_URL="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js";
 const MODEL="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/";
@@ -214,6 +214,16 @@ function setup(error){
  }catch(e){$("#setupError").textContent=errText(e)}finally{button.disabled=false}};
  $("#retrySetupBtn").textContent="Қайта текшириш";
 }
+function reconnect(error){
+ display("setupView");
+ $("#setupError").textContent=error||"";
+ const root=$("#setupDetail");
+ root.replaceChildren();
+ const text=document.createElement("p");
+ text.textContent="Терминал уланган. Улаш маълумоти сақланган. Сервер билан алоқани қайта текширинг.";
+ root.append(text);
+ $("#retrySetupBtn").textContent="ҚАЙТА УЛАНИШ";
+}
 async function init(){
  try{
   state.device=JSON.parse(localStorage.getItem(STORE)||"null");
@@ -227,7 +237,16 @@ async function init(){
   setTimeout(()=>ensureHuman().catch(e=>console.warn("FACE_PRELOAD_FAILED",errText(e))),150);
   const url=new URL(location.href),code=url.searchParams.get("enroll");
   if(code)scan("ENROLL",code).catch(e=>toast(errText(e)));
- }catch(e){state.device=null;localStorage.removeItem(STORE);setup(errText(e))}
+ }catch(e){
+  const msg=errText(e);
+  if(msg==="DEVICE_AUTH_FAILED" || msg.includes("DEVICE_AUTH_FAILED")){
+   state.device=null;
+   localStorage.removeItem(STORE);
+   setup("Қурилма рухсати бекор қилинган. Янги бир марталик код билан қайта уланг.");
+  }else{
+   reconnect("Сервер билан вақтинча алоқа бўлмади: "+msg);
+  }
+ }
 }
 function service(){
  const modal=$("#modal");
