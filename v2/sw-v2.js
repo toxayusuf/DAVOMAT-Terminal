@@ -1,4 +1,4 @@
-const VERSION="davomat-v2-sw-2.0.2";
+const VERSION="davomat-v2-sw-2.0.3";
 const STATIC_CACHE=VERSION+"-static";
 const MODEL_CACHE=VERSION+"-models";
 const STATIC=["./","./index.html","./admin.html","./assets/styles.css","./assets/terminal.js","./assets/admin.js"];
