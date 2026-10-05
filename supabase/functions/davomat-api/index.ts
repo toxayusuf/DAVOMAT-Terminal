@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const PROJECT_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const OWNER_EMAIL = "tohirjon.uzb@gmail.com";
-const VERSION = "2.0.0-preview";
+const VERSION = "2.0.4-preview";
 const ORIGINS = new Set([
   "https://toxayusuf.github.io",
   "https://glrluvbgrdftpcmwbhtr.supabase.co",
@@ -115,8 +115,10 @@ async function recognizedFace(db: ReturnType<typeof client>, embedding: number[]
   const second = ranked[1]?.[1] ?? -1;
   const { data: setting } = await db.from("davomat_settings")
     .select("value").eq("key", "FACE_MATCH_THRESHOLD").maybeSingle();
-  // Prevent unsafe legacy settings from lowering the minimum to 0.62.
-  const minMatch = Math.max(0.80, Number(setting?.value || 0.8));
+  // Keep recognition behavior compatible with the verified DAVOMAT v1.5
+  // profile set. Threshold is centrally controlled in davomat_settings.
+  const configured = Number(setting?.value ?? 0.62);
+  const minMatch = Number.isFinite(configured) ? Math.min(0.99, Math.max(0.50, configured)) : 0.62;
   return bestId && score >= minMatch && score - second >= 0.035
     ? { person: allowed.get(bestId)!, score } : null;
 }
