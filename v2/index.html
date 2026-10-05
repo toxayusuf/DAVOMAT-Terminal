@@ -31,5 +31,22 @@
     <section id="resultView" class="result-view hidden"><div id="resultIcon" class="result-icon">✓</div><h1 id="resultTitle">МУВАФФАҚИЯТЛИ</h1><h2 id="resultName"></h2><p id="resultPosition"></p><div id="resultType" class="result-type">КЕЛДИ</div><div id="resultTime" class="result-time">08:50</div><p id="resultNote">Белги сақланди</p></section>
   </main>
   <div id="modal" class="modal hidden"><div class="modal-card"><button id="modalClose" class="modal-x">×</button><div id="modalContent"></div></div></div><div id="toast" class="toast hidden"></div>
-  <script src="./assets/terminal.js" defer></script>
+  <script>
+(function(){
+  if(!("serviceWorker" in navigator)) return;
+  const key="davomat-v2-sw-2.0.2-reload";
+  navigator.serviceWorker.register("./sw-v2.js",{scope:"./"}).then(reg=>{
+    if(reg.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"});
+    const controller=navigator.serviceWorker.controller;
+    if(!controller || !controller.scriptURL.includes("/v2/sw-v2.js")){
+      navigator.serviceWorker.addEventListener("controllerchange",()=>{
+        if(sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key,"1");
+        location.reload();
+      },{once:true});
+    }
+  }).catch(err=>console.error("V2_SW_REGISTER_FAILED",err));
+})();
+</script>
+<script src="./assets/terminal.js" defer></script>
   </body></html>
